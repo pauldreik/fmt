@@ -26,8 +26,9 @@ doit(const uint8_t* Data, std::size_t Size)
   Data += N;
   Size -= N;
   // allocates as tight as possible, making it easier to catch buffer overruns
-  std::vector<char> buf(Data, Data + Size);
-  buf.resize(Size + 1, '\0');
+  // also, make it null terminated.
+  std::vector<char> buf(Size + 1);
+  std::memcpy(buf.data(), Data, Size);
   std::string message = fmt::format(buf.data(), item);
 }
 
