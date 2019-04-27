@@ -1,6 +1,16 @@
 #!/bin/sh
 #
+# Creates fuzzer builds of various kinds
+# - reproduce mode (no fuzzing, just enables replaying data through the fuzzers)
+# - oss-fuzz emulated mode (makes sure a simulated invocation by oss-fuzz works)
+# - libFuzzer build (you will need clang)
+# - afl build (you will need afl)
 #
+#
+# Copyright (c) 2019 Paul Dreik
+#
+# License: see LICENSE.rst in the fmt root directory
+
 set -e
 me=$(basename $0)
 root=$(readlink -f "$(dirname "$0")/..")

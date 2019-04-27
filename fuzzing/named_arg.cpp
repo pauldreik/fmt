@@ -1,3 +1,6 @@
+// Copyright (c) 2019, Paul Dreik
+// License: see LICENSE.rst in the fmt root directory
+
 #include <cstdint>
 #include <fmt/core.h>
 #include <fmt/chrono.h>

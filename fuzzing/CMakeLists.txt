@@ -1,17 +1,5 @@
-# for fuzzing libfmt http://fmtlib.net/
-#
-# by Paul Dreik 20190420
-# https://www.pauldreik.se/
-
-
-#cmake_minimum_required(VERSION 3.10)
-
-#project(fmt_fuzzers LANGUAGES CXX)
-
-#add_definitions(-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
-
-#add_subdirectory(fmt)
-
+# Copyright (c) 2019, Paul Dreik
+# License: see LICENSE.rst in the fmt root directory
 
 # settings this links in a main. useful for reproducing,
 # kcov, gdb, afl, valgrind.
@@ -29,8 +17,6 @@ if(FMT_FUZZ_LINKMAIN)
   add_definitions(-DIMPLEMENT_MAIN=1)
 endif()
 
-
-
 macro(implement_fuzzer sourcefile)
   get_filename_component(basename ${sourcefile} NAME_WE)
   set(name fuzzer_${basename})
@@ -39,7 +25,6 @@ macro(implement_fuzzer sourcefile)
 if(FMT_FUZZ_LDFLAGS)
   target_link_libraries(${name} PRIVATE ${FMT_FUZZ_LDFLAGS})
 endif()
-  #set_property(TARGET ${name} PROPERTY CXX_STANDARD 17)
   target_compile_features(${name} PRIVATE cxx_generic_lambdas)
 endmacro()
 
