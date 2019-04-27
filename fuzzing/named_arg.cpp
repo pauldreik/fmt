@@ -16,7 +16,7 @@ doit(const uint8_t* Data, std::size_t Size, int argsize)
     return;
   }
   Item1 item1{};
-  if constexpr (std::is_same<Item1, bool>::value) {
+  if /*constexpr*/  (std::is_same<Item1, bool>::value) {
     item1 = !!Data[0];
   } else {
     std::memcpy(&item1, Data, N1);
