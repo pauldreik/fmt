@@ -41,6 +41,7 @@ option(FMT_WERROR "Halt the compilation with an error on compiler warnings."
 option(FMT_DOC "Generate the doc target." ${MASTER_PROJECT})
 option(FMT_INSTALL "Generate the install target." ${MASTER_PROJECT})
 option(FMT_TEST "Generate the test target." ${MASTER_PROJECT})
+option(FMT_FUZZ "Generate the fuzz target." ${MASTER_PROJECT})
 
 project(FMT CXX)
 
@@ -259,6 +260,10 @@ endif ()
 if (FMT_TEST)
   enable_testing()
   add_subdirectory(test)
+endif ()
+
+if (FMT_FUZZ)
+  add_subdirectory(fuzzing)
 endif ()
 
 set(gitignore ${PROJECT_SOURCE_DIR}/.gitignore)
