@@ -1,24 +1,22 @@
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
-#include <cstdint>
-#include <fmt/core.h>
 #include <fmt/chrono.h>
+#include <fmt/core.h>
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
 
-template<typename Item1, typename Item2>
-void
-doit(const uint8_t* Data, std::size_t Size)
-{
+template <typename Item1, typename Item2>
+void doit(const uint8_t* Data, std::size_t Size) {
   const auto N1 = sizeof(Item1);
   const auto N2 = sizeof(Item2);
   if (Size <= N1 + N2) {
     return;
   }
   Item1 item1{};
-  if /*constexpr*/  (std::is_same<Item1, bool>::value) {
+  if /*constexpr*/ (std::is_same<Item1, bool>::value) {
     item1 = !!Data[0];
   } else {
     std::memcpy(&item1, Data, N1);
@@ -27,7 +25,7 @@ doit(const uint8_t* Data, std::size_t Size)
   Size -= N1;
 
   Item2 item2{};
-  if /*constexpr*/  (std::is_same<Item2, bool>::value) {
+  if /*constexpr*/ (std::is_same<Item2, bool>::value) {
     item2 = !!Data[0];
   } else {
     std::memcpy(&item2, Data, N2);
@@ -42,9 +40,7 @@ doit(const uint8_t* Data, std::size_t Size)
   std::string message = fmt::format(buf.data(), item1, item2);
 }
 
-void
-doit_time(const uint8_t* Data, std::size_t Size)
-{
+void doit_time(const uint8_t* Data, std::size_t Size) {
   using Item = std::time_t;
   const auto N = sizeof(Item);
   if (Size <= N) {
@@ -65,43 +61,37 @@ doit_time(const uint8_t* Data, std::size_t Size)
 }
 
 // for dynamic dispatching to an explicit instantiation
-template<typename Callback>
-void
-invoke(int index, Callback callback)
-{
+template <typename Callback> void invoke(int index, Callback callback) {
   switch (index) {
-    case 0:
-      callback(bool{});
-      break;
-    case 1:
-      callback(char{});
-      break;
-    case 2:
-      callback(short{});
-      break;
-    case 3:
-      callback(int{});
-      break;
-    case 4:
-      callback(long{});
-      break;
-    case 5:
-      callback(float{});
-      break;
-    case 6:
-      callback(double{});
-      break;
-    case 7:
-      using LD = long double;
-      callback(LD{});
-      break;
+  case 0:
+    callback(bool{});
+    break;
+  case 1:
+    callback(char{});
+    break;
+  case 2:
+    callback(short{});
+    break;
+  case 3:
+    callback(int{});
+    break;
+  case 4:
+    callback(long{});
+    break;
+  case 5:
+    callback(float{});
+    break;
+  case 6:
+    callback(double{});
+    break;
+  case 7:
+    using LD = long double;
+    callback(LD{});
+    break;
   }
 }
 
-extern "C" int
-LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size)
-{
-
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   if (Size <= 3) {
     return 0;
   }
@@ -127,13 +117,11 @@ LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size)
 }
 
 #ifdef IMPLEMENT_MAIN
-#include <cassert>
-#include <fstream>
-#include <sstream>
-#include <vector>
-int
-main(int argc, char* argv[])
-{
+#  include <cassert>
+#  include <fstream>
+#  include <sstream>
+#  include <vector>
+int main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
     std::ifstream in(argv[i]);
     assert(in);

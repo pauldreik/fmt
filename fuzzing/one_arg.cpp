@@ -1,18 +1,15 @@
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
 
-#include <cstdint>
 #include <fmt/core.h>
+#include <cstdint>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
 
 #include <fmt/chrono.h>
 
-template<typename Item>
-void
-doit(const uint8_t* Data, std::size_t Size)
-{
+template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
   const auto N = sizeof(Item);
   if (Size <= N) {
     return;
@@ -32,9 +29,7 @@ doit(const uint8_t* Data, std::size_t Size)
   std::string message = fmt::format(buf.data(), item);
 }
 
-void
-doit_time(const uint8_t* Data, std::size_t Size)
-{
+void doit_time(const uint8_t* Data, std::size_t Size) {
   using Item = std::time_t;
   const auto N = sizeof(Item);
   if (Size <= N) {
@@ -54,10 +49,7 @@ doit_time(const uint8_t* Data, std::size_t Size)
   }
 }
 
-extern "C" int
-LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size)
-{
-
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   if (Size <= 3) {
     return 0;
   }
@@ -68,35 +60,35 @@ LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size)
 
   try {
     switch (first) {
-      case 0:
-        doit<bool>(Data, Size);
-        break;
-      case 1:
-        doit<char>(Data, Size);
-        break;
-      case 2:
-        doit<short>(Data, Size);
-        break;
-      case 3:
-        doit<int>(Data, Size);
-        break;
-      case 4:
-        doit<long>(Data, Size);
-        break;
-      case 5:
-        doit<float>(Data, Size);
-        break;
-      case 6:
-        doit<double>(Data, Size);
-        break;
-      case 7:
-        doit<long double>(Data, Size);
-        break;
-      case 8:
-        doit_time(Data, Size);
-        break;
-      default:
-        break;
+    case 0:
+      doit<bool>(Data, Size);
+      break;
+    case 1:
+      doit<char>(Data, Size);
+      break;
+    case 2:
+      doit<short>(Data, Size);
+      break;
+    case 3:
+      doit<int>(Data, Size);
+      break;
+    case 4:
+      doit<long>(Data, Size);
+      break;
+    case 5:
+      doit<float>(Data, Size);
+      break;
+    case 6:
+      doit<double>(Data, Size);
+      break;
+    case 7:
+      doit<long double>(Data, Size);
+      break;
+    case 8:
+      doit_time(Data, Size);
+      break;
+    default:
+      break;
     }
   } catch (std::exception& e) {
   }
@@ -104,13 +96,11 @@ LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size)
 }
 
 #ifdef IMPLEMENT_MAIN
-#include <cassert>
-#include <fstream>
-#include <sstream>
-#include <vector>
-int
-main(int argc, char* argv[])
-{
+#  include <cassert>
+#  include <fstream>
+#  include <sstream>
+#  include <vector>
+int main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
     std::ifstream in(argv[i]);
     assert(in);
