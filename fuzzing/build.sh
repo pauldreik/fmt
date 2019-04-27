@@ -53,5 +53,20 @@ cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
 cmake --build $builddir
 
 
+#builds fuzzers for local fuzzing with afl
+builddir=$here/build-fuzzers-afl
+mkdir -p $builddir
+cd $builddir
+CXX="afl-g++" \
+CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -fsanitize=address,undefined" \
+cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
+-DFMT_DOC=Off \
+-DFMT_TEST=Off \
+-DFMT_FUZZ=On \
+-DFMT_FUZZ_LINKMAIN=On
+
+cmake --build $builddir
+
+
 echo $me: all good
 
