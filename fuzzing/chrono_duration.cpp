@@ -10,8 +10,8 @@
 #include <fmt/chrono.h>
 
 template <typename Item, typename Ratio>
-void doit_impl(const char* formatstring, Item item) {
-  std::chrono::duration<Item, Ratio> value(item);
+void doit_impl(const char* formatstring, const Item item) {
+  const std::chrono::duration<Item, Ratio> value(item);
   std::string message = fmt::format(formatstring, value);
 }
 
