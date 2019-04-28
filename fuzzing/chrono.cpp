@@ -9,19 +9,20 @@
 
 #include <fmt/chrono.h>
 
-template <typename Item,typename Ratio> void doit_impl(const char* formatstring,Item item) {
-  std::chrono::duration<Item, Ratio> value(item); 
+template <typename Item, typename Ratio>
+void doit_impl(const char* formatstring, Item item) {
+  std::chrono::duration<Item, Ratio> value(item);
   std::string message = fmt::format(formatstring, value);
 }
 
-//Item is the underlying type for duration (int, long etc)
+// Item is the underlying type for duration (int, long etc)
 template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
   const auto N = sizeof(Item);
   if (Size <= N) {
     return;
   }
   Item item{};
-    std::memcpy(&item, Data, N);
+  std::memcpy(&item, Data, N);
   Data += N;
   Size -= N;
 
@@ -29,22 +30,26 @@ template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
   // also, make it null terminated.
   std::vector<char> buf(Size + 1);
   std::memcpy(buf.data(), Data, Size);
- // doit_impl<Item,std::yocto>(buf.data(),item);
- // doit_impl<Item,std::zepto>(buf.data(),item);
-  doit_impl<Item,std::atto>(buf.data(),item);
-  doit_impl<Item,std::femto>(buf.data(),item);
-  doit_impl<Item,std::pico>(buf.data(),item);
-  doit_impl<Item,std::nano>(buf.data(),item);
-  doit_impl<Item,std::micro>(buf.data(),item);
-  doit_impl<Item,std::milli>(buf.data(),item);
-  doit_impl<Item,std::centi>(buf.data(),item);
-  doit_impl<Item,std::deci>(buf.data(),item);
-  doit_impl<Item,std::deca>(buf.data(),item); 
- doit_impl<Item,std::kilo>(buf.data(),item);
-  doit_impl<Item,std::mega>(buf.data(),item);  doit_impl<Item,std::giga>(buf.data(),item);  doit_impl<Item,std::tera>(buf.data(),item);  doit_impl<Item,std::peta>(buf.data(),item);  doit_impl<Item,std::exa>(buf.data(),item); 
-// doit_impl<Item,std::zeta>(buf.data(),item);  doit_impl<Item,std::yotta>(buf.data(),item);
+  // doit_impl<Item,std::yocto>(buf.data(),item);
+  // doit_impl<Item,std::zepto>(buf.data(),item);
+  doit_impl<Item, std::atto>(buf.data(), item);
+  doit_impl<Item, std::femto>(buf.data(), item);
+  doit_impl<Item, std::pico>(buf.data(), item);
+  doit_impl<Item, std::nano>(buf.data(), item);
+  doit_impl<Item, std::micro>(buf.data(), item);
+  doit_impl<Item, std::milli>(buf.data(), item);
+  doit_impl<Item, std::centi>(buf.data(), item);
+  doit_impl<Item, std::deci>(buf.data(), item);
+  doit_impl<Item, std::deca>(buf.data(), item);
+  doit_impl<Item, std::kilo>(buf.data(), item);
+  doit_impl<Item, std::mega>(buf.data(), item);
+  doit_impl<Item, std::giga>(buf.data(), item);
+  doit_impl<Item, std::tera>(buf.data(), item);
+  doit_impl<Item, std::peta>(buf.data(), item);
+  doit_impl<Item, std::exa>(buf.data(), item);
+  // doit_impl<Item,std::zeta>(buf.data(),item);
+  // doit_impl<Item,std::yotta>(buf.data(),item);
 }
-
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   if (Size <= 3) {
