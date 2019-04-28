@@ -21,3 +21,21 @@ This macro is the defacto standard for making fuzzing practically possible, see 
 To do a variety of builds making sure the build system works as intended,
 execute ```./build.sh```.
 
+# Reproduce
+To reproduce a crash, there are at least two ways.
+## Reproduce with a normal build
+This will build a normal executable, fed with input from the files given on the command line. This gives an example for the chrono_duration fuzzer:
+```sh
+./build.sh
+cd build-fuzzers-reproduce
+bin/fuzzer_chrono_duration  ../crashes/chrono_duration/*
+```
+
+## Reproduce using libFuzzer
+This will build libFuzzer, fed with input from the files given on the command line. The default libFuzzer build uses sanitizers, so this may catch errors not seen in the normal build. This gives an example for the chrono_duration fuzzer:
+```sh
+./build.sh
+cd build-fuzzers-reproduce
+export UBSAN_OPTIONS=halt_on_error=1
+bin/fuzzer_chrono_duration  ../crashes/chrono_duration/*
+```
