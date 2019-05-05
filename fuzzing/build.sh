@@ -47,7 +47,7 @@ cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
 cmake --build $builddir
 
 
-#builds fuzzers for local fuzzing with libfuzzer
+#builds fuzzers for local fuzzing with libfuzzer with asan+usan
 builddir=$here/build-fuzzers-libfuzzer
 mkdir -p $builddir
 cd $builddir
@@ -61,6 +61,23 @@ cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
 -DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer"
 
 cmake --build $builddir
+
+#builds fuzzers for local fuzzing with libfuzzer with asan only
+builddir=$here/build-fuzzers-libfuzzer-addr
+mkdir -p $builddir
+cd $builddir
+CXX="clang++" \
+CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -fsanitize=fuzzer-no-link,address" \
+cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
+-DFMT_DOC=Off \
+-DFMT_TEST=Off \
+-DFMT_FUZZ=On \
+-DFMT_FUZZ_LINKMAIN=Off \
+-DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer"
+
+cmake --build $builddir
+
+
 
 
 #builds fuzzers for local fuzzing with afl
