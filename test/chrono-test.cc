@@ -316,16 +316,16 @@ TEST(ChronoTest, NegativeDuration) {
 
 TEST(ChronoTest, DurationIsFloatNaN) {
   const std::chrono::duration<float> d{std::nanf("1")};
-  auto ignored=fmt::format("{:%I}",d);
+  EXPECT_THROW(fmt::format("{:%I}",d),fmt::format_error);
 }
 
 TEST(ChronoTest, DurationIsDoubleNaN) {
   const std::chrono::duration<double> d{std::nan("1")};
-  auto ignored=fmt::format("{:%I}",d);
+  EXPECT_THROW(fmt::format("{:%I}",d),fmt::format_error);
 }
 
 TEST(ChronoTest, OverflowingFloat) {
   const std::chrono::duration<float,std::kilo> d{std::numeric_limits<float>::max()*0.5f};
-  auto ignored=fmt::format("{:%I}",d);
+  EXPECT_THROW(fmt::format("{:%I}",d),fmt::format_error);
 }
 #endif  // FMT_STATIC_THOUSANDS_SEPARATOR
