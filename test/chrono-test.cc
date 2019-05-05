@@ -318,16 +318,22 @@ TEST(ChronoTest, SpecialDurations) {
 
 TEST(ChronoTest, DurationIsFloatNaN) {
   const std::chrono::duration<float> d{std::nanf("1")};
-  EXPECT_THROW(fmt::format("{:%I}",d),fmt::format_error);
+  EXPECT_THROW(fmt::format("{:%I}", d), fmt::format_error);
 }
 
 TEST(ChronoTest, DurationIsDoubleNaN) {
   const std::chrono::duration<double> d{std::nan("1")};
-  EXPECT_THROW(fmt::format("{:%I}",d),fmt::format_error);
+  EXPECT_THROW(fmt::format("{:%I}", d), fmt::format_error);
 }
 
 TEST(ChronoTest, OverflowingFloat) {
-  const std::chrono::duration<float,std::kilo> d{std::numeric_limits<float>::max()*0.5f};
-  EXPECT_THROW(fmt::format("{:%I}",d),fmt::format_error);
+  const std::chrono::duration<float, std::kilo> d{
+      std::numeric_limits<float>::max() * 0.5f};
+  EXPECT_THROW(fmt::format("{:%I}", d), fmt::format_error);
+}
+
+TEST(ChronoTest, OverflowingFloat2) {
+  const std::chrono::duration<float, std::atto> d{1.79400457e+31f};
+  EXPECT_THROW(fmt::format("{:%S}", d), fmt::format_error);
 }
 #endif  // FMT_STATIC_THOUSANDS_SEPARATOR
