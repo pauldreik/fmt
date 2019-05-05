@@ -20,12 +20,15 @@ echo $me: root=$root
 
 here=$(pwd)
 
+CXXFLAGSALL="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION= -g"
+CMAKEFLAGSALL="$root -GNinja -DCMAKE_BUILD_TYPE=Debug -DFMT_DOC=Off -DFMT_TEST=Off -DFMT_FUZZ=On"
+
 #builds the fuzzers as one would do if using afl or just making
 #binaries for reproducing.
 builddir=$here/build-fuzzers-reproduce
 mkdir -p $builddir
 cd $builddir
-CXX="ccache g++" CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1" cmake \
+CXX="ccache g++" CXXFLAGS="$CXXFLAGSALL" cmake \
 $root -GNinja -DCMAKE_BUILD_TYPE=Debug -DFMT_DOC=Off -DFMT_TEST=Off -DFMT_FUZZ=On
 cmake --build $builddir
 
@@ -36,11 +39,8 @@ builddir=$here/build-fuzzers-ossfuzz
 mkdir -p $builddir
 cd $builddir
 CXX="clang++" \
-CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -fsanitize=fuzzer-no-link" \
-cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
--DFMT_DOC=Off \
--DFMT_TEST=Off \
--DFMT_FUZZ=On \
+CXXFLAGS="$CXXFLAGSALL -fsanitize=fuzzer-no-link" cmake \
+cmake $CMAKEFLAGSALL \
 -DFMT_FUZZ_LINKMAIN=Off \
 -DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer"
 
@@ -52,11 +52,8 @@ builddir=$here/build-fuzzers-libfuzzer
 mkdir -p $builddir
 cd $builddir
 CXX="clang++" \
-CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -fsanitize=fuzzer-no-link,address,undefined" \
-cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
--DFMT_DOC=Off \
--DFMT_TEST=Off \
--DFMT_FUZZ=On \
+CXXFLAGS="$CXXFLAGSALL -fsanitize=fuzzer-no-link,address,undefined" cmake \
+cmake $CMAKEFLAGSALL \
 -DFMT_FUZZ_LINKMAIN=Off \
 -DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer"
 
@@ -67,11 +64,8 @@ builddir=$here/build-fuzzers-libfuzzer-addr
 mkdir -p $builddir
 cd $builddir
 CXX="clang++" \
-CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -fsanitize=fuzzer-no-link,address" \
-cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
--DFMT_DOC=Off \
--DFMT_TEST=Off \
--DFMT_FUZZ=On \
+CXXFLAGS="$CXXFLAGSALL -fsanitize=fuzzer-no-link,undefined" cmake \
+cmake $CMAKEFLAGSALL \
 -DFMT_FUZZ_LINKMAIN=Off \
 -DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer"
 
@@ -85,11 +79,8 @@ builddir=$here/build-fuzzers-afl
 mkdir -p $builddir
 cd $builddir
 CXX="afl-g++" \
-CXXFLAGS="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 -fsanitize=address,undefined" \
-cmake $root -GNinja -DCMAKE_BUILD_TYPE=Debug \
--DFMT_DOC=Off \
--DFMT_TEST=Off \
--DFMT_FUZZ=On \
+CXXFLAGS="$CXXFLAGSALL -fsanitize=address,undefined" \
+cmake $CMAKEFLAGSALL \
 -DFMT_FUZZ_LINKMAIN=On
 
 cmake --build $builddir
