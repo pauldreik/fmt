@@ -314,4 +314,14 @@ TEST(ChronoTest, NegativeDuration) {
   EXPECT_EQ("-00:01", fmt::format("{:%M:%S}", std::chrono::duration<double>(-1)));
 }
 
+TEST(ChronoTest, DurationIsFloatNaN) {
+  const std::chrono::duration<float> d{std::nanf("1")};
+  auto ignored=fmt::format("{:%I}",d);
+}
+
+TEST(ChronoTest, DurationIsDoubleNaN) {
+  const std::chrono::duration<double> d{std::nan("1")};
+  auto ignored=fmt::format("{:%I}",d);
+}
+
 #endif  // FMT_STATIC_THOUSANDS_SEPARATOR
