@@ -324,4 +324,8 @@ TEST(ChronoTest, DurationIsDoubleNaN) {
   auto ignored=fmt::format("{:%I}",d);
 }
 
+TEST(ChronoTest, OverflowingFloat) {
+  const std::chrono::duration<float,std::kilo> d{std::numeric_limits<float>::max()*0.5f};
+  auto ignored=fmt::format("{:%I}",d);
+}
 #endif  // FMT_STATIC_THOUSANDS_SEPARATOR
