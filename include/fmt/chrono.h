@@ -451,12 +451,18 @@ struct chrono_formatter {
       *out++ = '-';
     }
 
-    s = std::chrono::duration_cast<seconds>(d);
-    ms = std::chrono::duration_cast<milliseconds>(d - s);
-    if (is_floating_point) {
+
+    if constexpr (is_floating_point) {
+    	auto tmpseconds = std::chrono::duration_cast<seconds>(d);
+    	  s=seconds{std::floor(tmpseconds.count())};
+    	  ms = std::chrono::duration_cast<milliseconds>(tmpseconds - s);
       if (!std::isfinite(s.count()) || !std::isfinite(ms.count())) {
         FMT_THROW(format_error("internal overflow of floating point duration"));
       }
+    } else {
+    	 s = std::chrono::duration_cast<seconds>(d);
+    	    ms = std::chrono::duration_cast<milliseconds>(d - s);
+
     }
   }
 
