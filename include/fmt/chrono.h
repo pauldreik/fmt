@@ -376,13 +376,11 @@ struct chrono_format_checker {
   FMT_NORETURN void on_tz_name() { report_no_date(); }
 };
 
-template <typename T,
-          typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline bool isnan(T) {
   return false;
 }
-template <typename T, typename std::enable_if<std::is_floating_point<T>::value,
-                                              int>::type = 0>
+template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline bool isnan(T value) {
   return std::isnan(value);
 }
@@ -394,15 +392,31 @@ template <typename T> inline int to_int(T value) {
   return static_cast<int>(value);
 }
 
-template <typename T,
-          typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline T mod(T x, int y) {
   return x % y;
 }
-template <typename T, typename std::enable_if<std::is_floating_point<T>::value,
-                                              int>::type = 0>
+template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline T mod(T x, int y) {
   return std::fmod(x, y);
+}
+
+template <typename Rep, typename Period,
+          typename std::enable_if<std::is_integral<Rep>::value, int>::type = 0>
+inline std::chrono::duration<Rep, std::milli> get_milliseconds(
+    std::chrono::duration<Rep, Period> d) {
+  auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
+  return std::chrono::duration_cast<std::chrono::milliseconds>(d - s);
+}
+
+template <
+    typename Rep, typename Period,
+    typename std::enable_if<std::is_floating_point<Rep>::value, int>::type = 0>
+inline std::chrono::duration<Rep, std::milli> get_milliseconds(
+    std::chrono::duration<Rep, Period> d) {
+  auto ms =
+      std::chrono::duration_cast<std::chrono::duration<Rep, std::milli>>(d);
+  return std::chrono::duration<Rep, std::milli>(mod(ms.count(), 1000));
 }
 
 template <typename Rep, typename OutputIt>
@@ -450,17 +464,12 @@ struct chrono_formatter {
       d = -d;
       *out++ = '-';
     }
-
+    s = std::chrono::duration_cast<seconds>(d);
+    ms = get_milliseconds(d);   
     if constexpr (is_floating_point) {
-      auto tmpseconds = std::chrono::duration_cast<seconds>(d);
-      s = seconds{std::floor(tmpseconds.count())};
-      ms = std::chrono::duration_cast<milliseconds>(tmpseconds - s);
       if (!std::isfinite(s.count()) || !std::isfinite(ms.count())) {
         FMT_THROW(format_error("internal overflow of floating point duration"));
       }
-    } else {
-      s = std::chrono::duration_cast<seconds>(d);
-      ms = std::chrono::duration_cast<milliseconds>(d - s);
     }
   }
 
