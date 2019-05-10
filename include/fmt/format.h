@@ -1187,6 +1187,12 @@ It grisu_prettify(const char* digits, int size, int exp, It it,
     int num_zeros = (std::max)(params.num_digits - full_exp, 1);
     if (params.trailing_zeros) {
       *it++ = static_cast<Char>('.');
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+      //avoid getting stuck here
+      if(num_zeros>100000) {
+           throw std::runtime_error("fuzz mode - avoiding excessive memory");
+      }
+#endif
       it = std::fill_n(it, num_zeros, static_cast<Char>('0'));
     }
   } else if (full_exp > 0) {
