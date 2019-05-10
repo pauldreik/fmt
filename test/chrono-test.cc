@@ -306,6 +306,19 @@ TEST(ChronoTest, InvalidColons) {
                fmt::format_error);
 }
 
+TEST(ChronoTest, StdChronoCompiletimeOverflowCheckLarge) {
+  // this wont compile, fails on the internal overflow check
+  // in std::ratio for libstdc++ (gnu)
+  using Large = std::chrono::duration<float, std::exa>;
+  EXPECT_TRUE("" != fmt::format("{}", Large{1}));
+}
+
+TEST(ChronoTest, StdChronoCompiletimeOverflowCheckSmall) {
+  // this works fine
+  using Small = std::chrono::duration<float, std::atto>;
+  EXPECT_TRUE("" != fmt::format("{}", Small{1}));
+}
+
 TEST(ChronoTest, SpecialDurations) {
   EXPECT_EQ(
       "40.",
