@@ -148,15 +148,18 @@ FMT_END_NAMESPACE
 #  endif
 #endif
 
-// EDG C++ Front End based compilers (icc, nvcc) do not currently support UDL
-// templates.
-#if FMT_USE_USER_DEFINED_LITERALS && FMT_ICC_VERSION == 0 && \
-    FMT_CUDA_VERSION == 0 &&                                 \
-    ((FMT_GCC_VERSION >= 600 && __cplusplus >= 201402L) ||   \
-     (defined(FMT_CLANG_VERSION) && FMT_CLANG_VERSION >= 304))
-#  define FMT_UDL_TEMPLATE 1
-#else
-#  define FMT_UDL_TEMPLATE 0
+#ifndef FMT_USE_UDL_TEMPLATE
+// EDG front end based compilers (icc, nvcc) do not support UDL templates yet
+// and GCC 9 warns about them.
+#  if FMT_USE_USER_DEFINED_LITERALS && FMT_ICC_VERSION == 0 && \
+      FMT_CUDA_VERSION == 0 &&                                 \
+      ((FMT_GCC_VERSION >= 600 && FMT_GCC_VERSION <= 900 &&    \
+        __cplusplus >= 201402L) ||                             \
+       (defined(FMT_CLANG_VERSION) && FMT_CLANG_VERSION >= 304))
+#    define FMT_USE_UDL_TEMPLATE 1
+#  else
+#    define FMT_USE_UDL_TEMPLATE 0
+#  endif
 #endif
 
 #if FMT_HAS_GXX_CXX11 || FMT_HAS_FEATURE(cxx_trailing_return) || \
@@ -251,7 +254,7 @@ namespace uintptr {
 struct uintptr_t {
   unsigned char value[sizeof(void*)];
 };
-}
+}  // namespace uintptr
 using uintptr::uintptr_t;
 typedef std::numeric_limits<uintptr_t> numutil;
 
@@ -1118,10 +1121,7 @@ FMT_CONSTEXPR unsigned basic_parse_context<Char, ErrorHandler>::next_arg_id() {
 namespace internal {
 
 namespace grisu_options {
-enum {
-  fixed = 1,
-  grisu3 = 2
-};
+enum { fixed = 1, grisu3 = 2 };
 }
 
 // Formats value using the Grisu algorithm:
@@ -1198,12 +1198,13 @@ It grisu_prettify(const char* digits, int size, int exp, It it,
   } else if (full_exp > 0) {
     // 1234e-2 -> 12.34[0+]
     it = copy_str<Char>(digits, digits + full_exp, it);
-    *it++ = static_cast<Char>('.');
     if (!params.trailing_zeros) {
       // Remove trailing zeros.
       while (size > full_exp && digits[size - 1] == '0') --size;
+      if (size != full_exp) *it++ = static_cast<Char>('.');
       return copy_str<Char>(digits + full_exp, digits + size, it);
     }
+    *it++ = static_cast<Char>('.');
     it = copy_str<Char>(digits + full_exp, digits + size, it);
     if (params.num_digits > size) {
       // Add trailing zeros.
@@ -2886,7 +2887,7 @@ void basic_writer<Range>::write_double(T value, const format_specs& spec) {
                    (spec.type != 'a' && spec.type != 'A' && spec.type != 'e' &&
                     spec.type != 'E') &&
                    internal::grisu_format(static_cast<double>(value), buffer,
-                                           precision, options, exp);
+                                          precision, options, exp);
   if (!use_grisu) internal::sprintf_format(value, buffer, spec);
 
   if (handler.as_percentage) {
@@ -3583,7 +3584,7 @@ inline std::size_t formatted_size(string_view format_str, const Args&... args) {
 #if FMT_USE_USER_DEFINED_LITERALS
 namespace internal {
 
-#  if FMT_UDL_TEMPLATE
+#  if FMT_USE_UDL_TEMPLATE
 template <typename Char, Char... CHARS> class udl_formatter {
  public:
   template <typename... Args>
@@ -3606,7 +3607,7 @@ template <typename Char> struct udl_formatter {
     return format(str, std::forward<Args>(args)...);
   }
 };
-#  endif  // FMT_UDL_TEMPLATE
+#  endif  // FMT_USE_UDL_TEMPLATE
 
 template <typename Char> struct udl_arg {
   const Char* str;
@@ -3619,7 +3620,7 @@ template <typename Char> struct udl_arg {
 }  // namespace internal
 
 inline namespace literals {
-#  if FMT_UDL_TEMPLATE
+#  if FMT_USE_UDL_TEMPLATE
 template <typename Char, Char... CHARS>
 FMT_CONSTEXPR internal::udl_formatter<Char, CHARS...> operator""_format() {
   return {};
@@ -3643,7 +3644,7 @@ inline internal::udl_formatter<wchar_t> operator"" _format(const wchar_t* s,
                                                            std::size_t) {
   return {s};
 }
-#  endif  // FMT_UDL_TEMPLATE
+#  endif  // FMT_USE_UDL_TEMPLATE
 
 /**
   \rst

@@ -685,15 +685,6 @@ TEST(WriterTest, WriteWideString) {
   // std::declval<fmt::basic_writer<fmt::wbuffer>>().write("abc");
 }
 
-TEST(WriterTest, WriteUIntPtr) {
-  memory_buffer buf;
-  fmt::writer writer(buf);
-  writer.write_pointer(fmt::internal::bit_cast<fmt::internal::uintptr_t>(
-                           reinterpret_cast<void*>(0xface)),
-                       FMT_NULL);
-  EXPECT_EQ("0xface", to_string(buf));
-}
-
 TEST(FormatToTest, FormatWithoutArgs) {
   std::string s;
   fmt::format_to(std::back_inserter(s), "test");
@@ -2491,10 +2482,17 @@ TEST(FormatTest, FmtStringInTemplate) {
 
 #endif  // FMT_USE_CONSTEXPR
 
+// C++20 feature test, since r346892 Clang considers char8_t a fundamental
+// type in this mode. If this is the case __cpp_char8_t will be defined.
+#ifndef __cpp_char8_t
+// Locally provide type char8_t defined in format.h
+using fmt::char8_t;
+#endif
+
 TEST(FormatTest, ConstructU8StringViewFromCString) {
   fmt::u8string_view s("ab");
   EXPECT_EQ(s.size(), 2u);
-  const fmt::char8_t* data = s.data();
+  const char8_t* data = s.data();
   EXPECT_EQ(data[0], 'a');
   EXPECT_EQ(data[1], 'b');
 }
@@ -2502,7 +2500,7 @@ TEST(FormatTest, ConstructU8StringViewFromCString) {
 TEST(FormatTest, ConstructU8StringViewFromDataAndSize) {
   fmt::u8string_view s("foobar", 3);
   EXPECT_EQ(s.size(), 3u);
-  const fmt::char8_t* data = s.data();
+  const char8_t* data = s.data();
   EXPECT_EQ(data[0], 'f');
   EXPECT_EQ(data[1], 'o');
   EXPECT_EQ(data[2], 'o');
@@ -2513,7 +2511,7 @@ TEST(FormatTest, U8StringViewLiteral) {
   using namespace fmt::literals;
   fmt::u8string_view s = "ab"_u;
   EXPECT_EQ(s.size(), 2u);
-  const fmt::char8_t* data = s.data();
+  const char8_t* data = s.data();
   EXPECT_EQ(data[0], 'a');
   EXPECT_EQ(data[1], 'b');
   EXPECT_EQ(format("{:*^5}"_u, "🤡"_u), "**🤡**"_u);
@@ -2534,8 +2532,10 @@ TEST(FormatTest, CharTraitsIsNotAmbiguous) {
   // Test that we don't inject internal names into the std namespace.
   using namespace std;
   char_traits<char>::char_type c;
+  (void)c;
 #if __cplusplus >= 201103L
   std::string s;
-  begin(s);
+  auto lval = begin(s);
+  (void)lval;
 #endif
 }
