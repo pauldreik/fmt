@@ -21,7 +21,7 @@ echo $me: root=$root
 here=$(pwd)
 
 CXXFLAGSALL="-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION= -g"
-CMAKEFLAGSALL="$root -GNinja -DCMAKE_BUILD_TYPE=Debug -DFMT_DOC=Off -DFMT_TEST=Off -DFMT_FUZZ=On -DFMT_SAFE_DURATION_CAST=On"
+CMAKEFLAGSALL="$root -GNinja -DCMAKE_BUILD_TYPE=Debug -DFMT_DOC=Off -DFMT_TEST=Off -DFMT_FUZZ=On -DFMT_SAFE_DURATION_CAST=On -DCMAKE_CXX_STANDARD=17"
 
 #builds the fuzzers as one would do if using afl or just making
 #binaries for reproducing.
