@@ -529,7 +529,7 @@ class basic_memory_buffer : private Allocator, public internal::buffer<T> {
 template <typename T, std::size_t SIZE, typename Allocator>
 void basic_memory_buffer<T, SIZE, Allocator>::grow(std::size_t size) {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-if(size>10000000) {
+if(size>1000) {
  throw std::runtime_error("fuzz mode - won't grow that much");
 }
 #endif
@@ -1189,7 +1189,7 @@ It grisu_prettify(const char* digits, int size, int exp, It it,
       *it++ = static_cast<Char>('.');
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
       //avoid getting stuck here
-      if(num_zeros>100000) {
+      if(num_zeros>1000) {
            throw std::runtime_error("fuzz mode - avoiding excessive memory");
       }
 #endif
