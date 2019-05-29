@@ -75,14 +75,29 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
     case 1:
       doit<char>(Data, Size);
       break;
+    case 21:
+      doit<unsigned char>(Data, Size);
+      break;
+    case 31:
+      doit<signed char>(Data, Size);
+      break;
     case 2:
       doit<short>(Data, Size);
+      break;
+    case 22:
+      doit<unsigned short>(Data, Size);
       break;
     case 3:
       doit<int>(Data, Size);
       break;
+    case 23:
+      doit<unsigned int>(Data, Size);
+      break;
     case 4:
       doit<long>(Data, Size);
+      break;
+    case 24:
+      doit<unsigned long>(Data, Size);
       break;
     case 5:
       doit<float>(Data, Size);
