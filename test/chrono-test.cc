@@ -344,4 +344,7 @@ TEST(ChronoTest, OverflowingFloat2) {
   const std::chrono::duration<float, std::atto> d{1.79400457e+31f};
   fmt::format("{:%S}", d);
 }
+TEST(ChronoTest,crash1) {
+  fmt::format("{:%R}", std::chrono::duration<char, std::mega>{2});
+}
 #endif  // FMT_STATIC_THOUSANDS_SEPARATOR
