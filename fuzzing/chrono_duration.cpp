@@ -12,7 +12,10 @@
 template <typename Item, typename Ratio>
 void doit_impl(const char* formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
+  try {
   std::string message = fmt::format(formatstring, value);
+  } catch (std::exception& e) {
+  }
 }
 
 // Item is the underlying type for duration (int, long etc)
@@ -60,7 +63,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   Data++;
   Size--;
 
-  try {
     switch (first) {
     case 1:
       doit<char>(Data, Size);
@@ -86,8 +88,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
     default:
       break;
     }
-  } catch (std::exception& e) {
-  }
+
   return 0;
 }
 

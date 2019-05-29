@@ -36,12 +36,14 @@ endif ()
 option(FMT_PEDANTIC "Enable extra warnings and expensive tests." OFF)
 option(FMT_WERROR "Halt the compilation with an error on compiler warnings."
        OFF)
+option(FMT_SAFE_DURATION_CAST "verify chrono duration casts" OFF)
 
 # Options that control generation of various targets.
 option(FMT_DOC "Generate the doc target." ${MASTER_PROJECT})
 option(FMT_INSTALL "Generate the install target." ${MASTER_PROJECT})
 option(FMT_TEST "Generate the test target." ${MASTER_PROJECT})
 option(FMT_FUZZ "Generate the fuzz target." ${MASTER_PROJECT})
+
 
 project(FMT CXX)
 
@@ -180,6 +182,9 @@ if (BUILD_SHARED_LIBS)
   endif ()
   target_compile_definitions(fmt PRIVATE FMT_EXPORT INTERFACE FMT_SHARED)
 endif ()
+if (FMT_SAFE_DURATION_CAST)
+    target_compile_definitions(fmt PUBLIC FMT_SAFE_DURATION_CAST)
+endif()
 
 add_library(fmt-header-only INTERFACE)
 add_library(fmt::fmt-header-only ALIAS fmt-header-only)

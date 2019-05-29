@@ -16,6 +16,10 @@
 #include <locale>
 #include <sstream>
 
+#ifdef FMT_SAFE_DURATION_CAST
+#include <chronoconv.hpp>
+#endif
+
 FMT_BEGIN_NAMESPACE
 
 // Prevents expansion of a preceding token as a function-style macro.
@@ -405,8 +409,32 @@ template <typename Rep, typename Period,
           typename std::enable_if<std::is_integral<Rep>::value, int>::type = 0>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
     std::chrono::duration<Rep, Period> d) {
-  auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
-  return std::chrono::duration_cast<std::chrono::milliseconds>(d - s);
+    // this may overflow and/or the result may not fit in the
+    // target type.
+#ifdef FMT_SAFE_DURATION_CAST
+   // if(std::ratio_less<Period,std::ratio<1>>::value) {
+     using CommonSecondsType=typename std::common_type<decltype(d),std::chrono::seconds>::type;
+        int ec;
+        const auto d_as_common = safe_duration_cast::safe_duration_cast<CommonSecondsType>(d,ec);
+        if(ec) {
+            FMT_THROW(format_error("value would cause UB or the wrong result"));
+        }
+        const auto d_as_whole_seconds = safe_duration_cast::safe_duration_cast<std::chrono::seconds>(d_as_common,ec);
+        if(ec) {
+            FMT_THROW(format_error("value would cause UB or the wrong result"));
+        }
+        //this conversion should be nonproblematic
+        const auto diff=d_as_common-d_as_whole_seconds;
+        const auto ms=safe_duration_cast::safe_duration_cast<std::chrono::duration<Rep, std::milli>>(diff,ec);
+        if(ec) {
+            FMT_THROW(format_error("value would cause UB or the wrong result"));
+        }
+        return ms;
+
+#else
+    auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
+    return std::chrono::duration_cast<std::chrono::milliseconds>(d - s);
+#endif
 }
 
 template <
@@ -451,20 +479,22 @@ struct chrono_formatter {
   explicit chrono_formatter(FormatContext& ctx, OutputIt o,
                             std::chrono::duration<Rep, Period> d)
       : context(ctx), out(o), val(d.count()) {
-    constexpr bool is_floating_point = std::is_floating_point<Rep>::value;
-    if (is_floating_point && !std::isfinite(d.count())) {
-      FMT_THROW(format_error("floating point duration is NaN or Inf"));
-    }
     if (d.count() < 0) {
+        //hmm, what happens if this is INT_MIN?
       d = -d;
       *out++ = '-';
     }
-    s = std::chrono::duration_cast<seconds>(d);
-    if constexpr (is_floating_point) {
-      if (!std::isfinite(s.count())) {
-        FMT_THROW(format_error("internal overflow of floating point duration"));
-      }
+    // this may overflow and/or the result may not fit in the
+    // target type.
+#ifdef FMT_SAFE_DURATION_CAST
+    int ec;
+    s = safe_duration_cast::safe_duration_cast<seconds>(d,ec);
+    if(ec) {
+        FMT_THROW(format_error("value would cause UB or the wrong result"));
     }
+#else
+    s = std::chrono::duration_cast<seconds>(d);
+#endif
   }
 
   Rep hour() const { return mod((s.count() / 3600), 24); }
