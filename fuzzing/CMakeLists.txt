@@ -12,7 +12,7 @@ set(FMT_FUZZ_LDFLAGS "" CACHE STRING "LDFLAGS for the fuzz targets")
 
 #find all fuzzers.
 set(SOURCES
-#chrono_duration.cpp # this triggers integer overflows I yet not know how to fix
+chrono_duration.cpp # this triggers integer overflows I yet not know how to fix
 named_arg.cpp
 one_arg.cpp
 sprintf.cpp

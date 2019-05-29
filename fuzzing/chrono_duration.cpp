@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <limits>
 
 #include <fmt/chrono.h>
 
@@ -28,6 +29,13 @@ template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
   std::memcpy(&item, Data, N);
   Data += N;
   Size -= N;
+
+  if(std::is_floating_point<Item>::value || std::numeric_limits<Item>::is_signed) {
+      if(item<0) {
+      //avoid problems with negative numbers until https://github.com/fmtlib/fmt/issues/1178 is solved
+      return;
+      }
+  }
 
   // allocates as tight as possible, making it easier to catch buffer overruns
   // also, make it null terminated.
