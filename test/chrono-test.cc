@@ -104,33 +104,36 @@ TEST(TimeTest, GMTime) {
 #ifndef FMT_STATIC_THOUSANDS_SEPARATOR
 
 TEST(ChronoTest, Negative_case1) {
-EXPECT_EQ("-12345", fmt::format("{:%Q}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("-12345", fmt::format("{:%Q}", std::chrono::seconds(-12345)));
 }
 TEST(ChronoTest, Negative_case2) {
-EXPECT_EQ("-03:25:45",
-          fmt::format("{:%H:%M:%S}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("-03:25:45",
+            fmt::format("{:%H:%M:%S}", std::chrono::seconds(-12345)));
 }
 TEST(ChronoTest, Negative_case3) {
-EXPECT_EQ("s", fmt::format("{:%q}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("s", fmt::format("{:%q}", std::chrono::seconds(-12345)));
 }
 TEST(ChronoTest, Negative_case4) {
-EXPECT_EQ("-127", fmt::format("{:%S}", std::chrono::duration<char, std::milli>{-127}));
+  EXPECT_EQ("-127", fmt::format("{:%S}",
+                                std::chrono::duration<char, std::milli>{-127}));
 }
 TEST(ChronoTest, Negative_case5) {
-EXPECT_EQ("-03:25", fmt::format("{:%R}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("-03:25", fmt::format("{:%R}", std::chrono::seconds(-12345)));
 }
 TEST(ChronoTest, Negative_case6) {
-EXPECT_EQ("-03:25:45", fmt::format("{:%T}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("-03:25:45", fmt::format("{:%T}", std::chrono::seconds(-12345)));
 }
 TEST(ChronoTest, ShouldntCrash1) {
-    try { fmt::format("{:%R}", std::chrono::duration<char, std::mega>{2});
-    } catch(...) {
-    }
+  try {
+    fmt::format("{:%R}", std::chrono::duration<char, std::mega>{2});
+  } catch (...) {
+  }
 }
 TEST(ChronoTest, ShouldntCrash2) {
-    try { fmt::format("{:%T}", std::chrono::duration<char, std::mega>{2});
-    } catch(...) {
-    }
+  try {
+    fmt::format("{:%T}", std::chrono::duration<char, std::mega>{2});
+  } catch (...) {
+  }
 }
 
 TEST(ChronoTest, FormatDefault) {
