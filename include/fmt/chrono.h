@@ -612,7 +612,10 @@ struct chrono_formatter {
   }
 
   void on_second(numeric_system ns) {
-     if(handle_nan_inf()) { return;}
+     if(handle_nan_inf()) {
+          *out++ = '.';
+         handle_nan_inf();
+         return;}
 
     if (ns == numeric_system::standard) {
       write(second(), 2);
@@ -636,7 +639,8 @@ struct chrono_formatter {
 
   void on_24_hour_time() {
      if(handle_nan_inf()) {
-         std::copy_n(":00", 3, out);
+         *out++ = ':';
+         handle_nan_inf();
          return;
      }
 
