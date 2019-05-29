@@ -71,7 +71,18 @@ cmake $CMAKEFLAGSALL \
 
 cmake --build $builddir
 
+#builds a fast fuzzer for making coverage fast
+builddir=$here/build-fuzzers-fast
+mkdir -p $builddir
+cd $builddir
+CXX="clang++" \
+CXXFLAGS="$CXXFLAGSALL -fsanitize=fuzzer-no-link -O3" cmake \
+cmake $CMAKEFLAGSALL \
+-DFMT_FUZZ_LINKMAIN=Off \
+-DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer" \
+ -DCMAKE_BUILD_TYPE=Release
 
+cmake --build $builddir
 
 
 #builds fuzzers for local fuzzing with afl
