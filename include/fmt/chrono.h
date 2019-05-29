@@ -388,10 +388,18 @@ template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline bool isnan(T value) {
   return std::isnan(value);
 }
-
+template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+inline bool isfinite(T) {
+  return true;
+}
+template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
+inline bool isfinite(T value) {
+  return std::isfinite(value);
+}
 template <typename T> inline int to_int(T value) {
-  FMT_ASSERT(isnan(value) || (value >= (std::numeric_limits<int>::min)() &&
-                              value <= (std::numeric_limits<int>::max)()),
+  FMT_ASSERT(!isnan(value),"nan to int conversion is UB");
+  FMT_ASSERT((value >= (std::numeric_limits<int>::min)() &&
+              value <= (std::numeric_limits<int>::max)()),
              "invalid value");
   return static_cast<int>(value);
 }
@@ -497,6 +505,24 @@ struct chrono_formatter {
 #endif
   }
 
+  //returns true if nan or inf, writes to out.
+  bool handle_nan_inf() {
+      if(isfinite(val)) {
+          return false;
+      }
+      if(isnan(val)) {
+          write_nan();
+          return true;
+      }
+      //must be +-inf
+      if(val>0) {
+          write_pinf();
+      } else {
+          write_ninf();
+      }
+      return true;
+  }
+
   Rep hour() const { return mod((s.count() / 3600), 24); }
 
   Rep hour12() const {
@@ -525,6 +551,8 @@ struct chrono_formatter {
   }
 
   void write_nan() { std::copy_n("nan", 3, out); }
+  void write_pinf() { std::copy_n("+inf", 4, out); }
+  void write_ninf() { std::copy_n("-inf", 4, out); }
 
   void format_localized(const tm& time, const char* format) {
     if (isnan(val)) return write_nan();
@@ -557,6 +585,8 @@ struct chrono_formatter {
   void on_tz_name() {}
 
   void on_24_hour(numeric_system ns) {
+    if(handle_nan_inf()) { return;}
+
     if (ns == numeric_system::standard) return write(hour(), 2);
     auto time = tm();
     time.tm_hour = to_int(hour());
@@ -564,6 +594,8 @@ struct chrono_formatter {
   }
 
   void on_12_hour(numeric_system ns) {
+    if(handle_nan_inf()) { return;}
+
     if (ns == numeric_system::standard) return write(hour12(), 2);
     auto time = tm();
     time.tm_hour = hour12();
@@ -571,6 +603,8 @@ struct chrono_formatter {
   }
 
   void on_minute(numeric_system ns) {
+    if(handle_nan_inf()) { return;}
+
     if (ns == numeric_system::standard) return write(minute(), 2);
     auto time = tm();
     time.tm_min = minute();
@@ -578,6 +612,8 @@ struct chrono_formatter {
   }
 
   void on_second(numeric_system ns) {
+     if(handle_nan_inf()) { return;}
+
     if (ns == numeric_system::standard) {
       write(second(), 2);
       auto ms = get_milliseconds(std::chrono::duration<Rep, Period>(val));
@@ -592,9 +628,18 @@ struct chrono_formatter {
     format_localized(time, "%OS");
   }
 
-  void on_12_hour_time() { format_localized(time(), "%r"); }
+  void on_12_hour_time() {
+      if(handle_nan_inf()) { return;}
+
+      format_localized(time(), "%r");
+  }
 
   void on_24_hour_time() {
+     if(handle_nan_inf()) {
+         std::copy_n(":00", 3, out);
+         return;
+     }
+
     write(hour(), 2);
     *out++ = ':';
     write(minute(), 2);
@@ -603,12 +648,19 @@ struct chrono_formatter {
   void on_iso_time() {
     on_24_hour_time();
     *out++ = ':';
+    if(handle_nan_inf()) { return;}
     write(second(), 2);
   }
 
-  void on_am_pm() { format_localized(time(), "%p"); }
+  void on_am_pm() {
+      if(handle_nan_inf()) { return;}
+
+         format_localized(time(), "%p");
+  }
 
   void on_duration_value() {
+      if(handle_nan_inf()) { return;}
+
     out = format_chrono_duration_value(out, val, precision);
   }
 
