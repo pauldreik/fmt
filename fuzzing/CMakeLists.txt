@@ -8,7 +8,7 @@ option(FMT_FUZZ_LINKMAIN "enables the reproduce mode, instead of libFuzzer" On)
 
 #for oss-fuzz - insert $LIB_FUZZING_ENGINE into the link flags, but only for
 #the fuzz targets, otherwise the cmake configuration step fails.
-option(FMT_FUZZ_LDFLAGS "LDFLAGS for the fuzz targets" "")
+set(FMT_FUZZ_LDFLAGS "" CACHE STRING "LDFLAGS for the fuzz targets")
 
 #find all fuzzers.
 set(SOURCES
