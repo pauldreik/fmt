@@ -47,10 +47,10 @@ std::string format_tm(const std::tm& time, const char* spec,
   return os.str();
 }
 TEST(ChronoTest, Negative) {
-EXPECT_EQ("-12345", fmt::format("{:%Q}", std::chrono::seconds(-12345)));
-EXPECT_EQ("-03:25:45",
-          fmt::format("{:%H:%M:%S}", std::chrono::seconds(-12345)));
-EXPECT_EQ("s", fmt::format("{:%q}", std::chrono::seconds(12345)));
+  EXPECT_EQ("-12345", fmt::format("{:%Q}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("-03:25:45",
+            fmt::format("{:%H:%M:%S}", std::chrono::seconds(-12345)));
+  EXPECT_EQ("s", fmt::format("{:%q}", std::chrono::seconds(12345)));
 }
 
 /*
@@ -60,9 +60,10 @@ TEST(ChronoTest,crash2) {
             //,fmt::format_error);
 }
 */
-TEST(ChronoTest,crash1) {
-    EXPECT_THROW(fmt::format("{:%R}", std::chrono::duration<char, std::mega>{2}),fmt::format_error);
-    }
+TEST(ChronoTest, crash1) {
+  EXPECT_THROW(fmt::format("{:%R}", std::chrono::duration<char, std::mega>{2}),
+               fmt::format_error);
+}
 TEST(TimeTest, Format) {
   std::tm tm = std::tm();
   tm.tm_year = 116;
@@ -205,7 +206,6 @@ TEST(ChronoTest, FormatSpecs) {
   EXPECT_EQ("12345", fmt::format("{:%Q}", std::chrono::seconds(12345)));
   EXPECT_EQ("s", fmt::format("{:%q}", std::chrono::seconds(12345)));
 }
-
 
 TEST(ChronoTest, InvalidSpecs) {
   auto sec = std::chrono::seconds(0);

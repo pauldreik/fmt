@@ -782,9 +782,9 @@ void sprintf_format(Double value, internal::buffer<char>& buf,
   *format_ptr = '\0';
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-if(spec.precision>1000) {
- throw std::runtime_error("fuzz mode - avoiding large precision");
-}
+  if (spec.precision > 1000) {
+    throw std::runtime_error("fuzz mode - avoiding large precision");
+  }
 #endif
 
   // Format using snprintf.

@@ -17,7 +17,7 @@
 #include <sstream>
 
 #ifdef FMT_SAFE_DURATION_CAST
-#include <safe_duration_cast/chronoconv.hpp>
+#  include <safe_duration_cast/chronoconv.hpp>
 #endif
 
 FMT_BEGIN_NAMESPACE
@@ -397,7 +397,7 @@ inline bool isfinite(T value) {
   return std::isfinite(value);
 }
 template <typename T> inline int to_int(T value) {
-  FMT_ASSERT(!isnan(value),"nan to int conversion is UB");
+  FMT_ASSERT(!isnan(value), "nan to int conversion is UB");
   FMT_ASSERT((value >= (std::numeric_limits<int>::min)() &&
               value <= (std::numeric_limits<int>::max)()),
              "invalid value");
@@ -417,31 +417,36 @@ template <typename Rep, typename Period,
           typename std::enable_if<std::is_integral<Rep>::value, int>::type = 0>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
     std::chrono::duration<Rep, Period> d) {
-    // this may overflow and/or the result may not fit in the
-    // target type.
+  // this may overflow and/or the result may not fit in the
+  // target type.
 #ifdef FMT_SAFE_DURATION_CAST
-   // if(std::ratio_less<Period,std::ratio<1>>::value) {
-     using CommonSecondsType=typename std::common_type<decltype(d),std::chrono::seconds>::type;
-        int ec;
-        const auto d_as_common = safe_duration_cast::safe_duration_cast<CommonSecondsType>(d,ec);
-        if(ec) {
-            FMT_THROW(format_error("value would cause UB or the wrong result"));
-        }
-        const auto d_as_whole_seconds = safe_duration_cast::safe_duration_cast<std::chrono::seconds>(d_as_common,ec);
-        if(ec) {
-            FMT_THROW(format_error("value would cause UB or the wrong result"));
-        }
-        //this conversion should be nonproblematic
-        const auto diff=d_as_common-d_as_whole_seconds;
-        const auto ms=safe_duration_cast::safe_duration_cast<std::chrono::duration<Rep, std::milli>>(diff,ec);
-        if(ec) {
-            FMT_THROW(format_error("value would cause UB or the wrong result"));
-        }
-        return ms;
+  // if(std::ratio_less<Period,std::ratio<1>>::value) {
+  using CommonSecondsType =
+      typename std::common_type<decltype(d), std::chrono::seconds>::type;
+  int ec;
+  const auto d_as_common =
+      safe_duration_cast::safe_duration_cast<CommonSecondsType>(d, ec);
+  if (ec) {
+    FMT_THROW(format_error("value would cause UB or the wrong result"));
+  }
+  const auto d_as_whole_seconds =
+      safe_duration_cast::safe_duration_cast<std::chrono::seconds>(d_as_common,
+                                                                   ec);
+  if (ec) {
+    FMT_THROW(format_error("value would cause UB or the wrong result"));
+  }
+  // this conversion should be nonproblematic
+  const auto diff = d_as_common - d_as_whole_seconds;
+  const auto ms = safe_duration_cast::safe_duration_cast<
+      std::chrono::duration<Rep, std::milli>>(diff, ec);
+  if (ec) {
+    FMT_THROW(format_error("value would cause UB or the wrong result"));
+  }
+  return ms;
 
 #else
-    auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
-    return std::chrono::duration_cast<std::chrono::milliseconds>(d - s);
+  auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
+  return std::chrono::duration_cast<std::chrono::milliseconds>(d - s);
 #endif
 }
 
@@ -488,7 +493,7 @@ struct chrono_formatter {
                             std::chrono::duration<Rep, Period> d)
       : context(ctx), out(o), val(d.count()) {
     if (d.count() < 0) {
-        //hmm, what happens if this is INT_MIN?
+      // hmm, what happens if this is INT_MIN?
       d = -d;
       *out++ = '-';
     }
@@ -496,31 +501,31 @@ struct chrono_formatter {
     // target type.
 #ifdef FMT_SAFE_DURATION_CAST
     int ec;
-    s = safe_duration_cast::safe_duration_cast<seconds>(d,ec);
-    if(ec) {
-        FMT_THROW(format_error("value would cause UB or the wrong result"));
+    s = safe_duration_cast::safe_duration_cast<seconds>(d, ec);
+    if (ec) {
+      FMT_THROW(format_error("value would cause UB or the wrong result"));
     }
 #else
     s = std::chrono::duration_cast<seconds>(d);
 #endif
   }
 
-  //returns true if nan or inf, writes to out.
+  // returns true if nan or inf, writes to out.
   bool handle_nan_inf() {
-      if(isfinite(val)) {
-          return false;
-      }
-      if(isnan(val)) {
-          write_nan();
-          return true;
-      }
-      //must be +-inf
-      if(val>0) {
-          write_pinf();
-      } else {
-          write_ninf();
-      }
+    if (isfinite(val)) {
+      return false;
+    }
+    if (isnan(val)) {
+      write_nan();
       return true;
+    }
+    // must be +-inf
+    if (val > 0) {
+      write_pinf();
+    } else {
+      write_ninf();
+    }
+    return true;
   }
 
   Rep hour() const { return mod((s.count() / 3600), 24); }
@@ -585,7 +590,9 @@ struct chrono_formatter {
   void on_tz_name() {}
 
   void on_24_hour(numeric_system ns) {
-    if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
 
     if (ns == numeric_system::standard) return write(hour(), 2);
     auto time = tm();
@@ -594,7 +601,9 @@ struct chrono_formatter {
   }
 
   void on_12_hour(numeric_system ns) {
-    if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
 
     if (ns == numeric_system::standard) return write(hour12(), 2);
     auto time = tm();
@@ -603,7 +612,9 @@ struct chrono_formatter {
   }
 
   void on_minute(numeric_system ns) {
-    if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
 
     if (ns == numeric_system::standard) return write(minute(), 2);
     auto time = tm();
@@ -612,10 +623,11 @@ struct chrono_formatter {
   }
 
   void on_second(numeric_system ns) {
-     if(handle_nan_inf()) {
-          *out++ = '.';
-         handle_nan_inf();
-         return;}
+    if (handle_nan_inf()) {
+      *out++ = '.';
+      handle_nan_inf();
+      return;
+    }
 
     if (ns == numeric_system::standard) {
       write(second(), 2);
@@ -632,17 +644,19 @@ struct chrono_formatter {
   }
 
   void on_12_hour_time() {
-      if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
 
-      format_localized(time(), "%r");
+    format_localized(time(), "%r");
   }
 
   void on_24_hour_time() {
-     if(handle_nan_inf()) {
-         *out++ = ':';
-         handle_nan_inf();
-         return;
-     }
+    if (handle_nan_inf()) {
+      *out++ = ':';
+      handle_nan_inf();
+      return;
+    }
 
     write(hour(), 2);
     *out++ = ':';
@@ -652,18 +666,24 @@ struct chrono_formatter {
   void on_iso_time() {
     on_24_hour_time();
     *out++ = ':';
-    if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
     write(second(), 2);
   }
 
   void on_am_pm() {
-      if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
 
-         format_localized(time(), "%p");
+    format_localized(time(), "%p");
   }
 
   void on_duration_value() {
-      if(handle_nan_inf()) { return;}
+    if (handle_nan_inf()) {
+      return;
+    }
 
     out = format_chrono_duration_value(out, val, precision);
   }
