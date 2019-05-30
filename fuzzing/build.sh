@@ -32,7 +32,16 @@ CXX="ccache g++" CXXFLAGS="$CXXFLAGSALL" cmake \
 $root -GNinja -DCMAKE_BUILD_TYPE=Debug -DFMT_DOC=Off -DFMT_TEST=Off -DFMT_FUZZ=On
 cmake --build $builddir
 
+#for performance analysis of the fuzzers
+builddir=$here/build-fuzzers-perfanalysis
+mkdir -p $builddir
+cd $builddir
+CXX="ccache g++" CXXFLAGS="$CXXFLAGSALL -g" cmake \
+$CMAKEFLAGSALL \
+-DFMT_FUZZ_LINKMAIN=On \
+-DCMAKE_BUILD_TYPE=Release
 
+cmake --build $builddir
 
 #builds the fuzzers as oss-fuzz does
 builddir=$here/build-fuzzers-ossfuzz
