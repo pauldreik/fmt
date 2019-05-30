@@ -497,8 +497,16 @@ struct chrono_formatter {
   explicit chrono_formatter(FormatContext& ctx, OutputIt o,
                             std::chrono::duration<Rep, Period> d)
       : context(ctx), out(o), val(d.count()) {
-   // hmm, what happens if this is INT_MIN?
-   if (d.count() < 0) d = -d;
+   if (d.count() < 0) {
+       //protect against signed integer overflow
+       using TT=std::numeric_limits<Rep>;
+       if(TT::is_integer && TT::is_signed) {
+           if(d.count()==TT::min()) {
+               FMT_THROW(format_error("value would cause UB"));
+           }
+       }
+       d = -d;
+   }
    
     // this may overflow and/or the result may not fit in the
     // target type.
