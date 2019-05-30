@@ -465,13 +465,10 @@ inline std::chrono::duration<Rep, std::milli> get_milliseconds(
 }
 
 template <typename Rep, typename OutputIt>
-OutputIt static format_chrono_duration_value(OutputIt out, Rep val,
-                                             int precision) {
-  if (precision < 0) {
-    return format_to(out, std::is_floating_point<Rep>::value ? "{:g}" : "{}",
-                     val);
-  }
-  return format_to(out, "{:.{}f}", val, precision);
+OutputIt format_chrono_duration_value(OutputIt out, Rep val, int precision) {
+  if (precision >= 0) return format_to(out, "{:.{}f}", val, precision);
+  return format_to(out, std::is_floating_point<Rep>::value ? "{:g}" : "{}",
+                   val);
 }
 
 template <typename Period, typename OutputIt>
@@ -487,21 +484,22 @@ struct chrono_formatter {
   FormatContext& context;
   OutputIt out;
   int precision;
-  Rep val;
-  typedef std::chrono::duration<Rep> seconds;
+  typedef typename std::conditional<std::is_integral<Rep>::value &&
+                                        sizeof(Rep) < sizeof(int),
+                                    int, Rep>::type rep;
+  rep val;
+  typedef std::chrono::duration<rep> seconds;
   seconds s;
-  typedef std::chrono::duration<Rep, std::milli> milliseconds;
+  typedef std::chrono::duration<rep, std::milli> milliseconds;
 
   typedef typename FormatContext::char_type char_type;
 
   explicit chrono_formatter(FormatContext& ctx, OutputIt o,
                             std::chrono::duration<Rep, Period> d)
       : context(ctx), out(o), val(d.count()) {
-    if (d.count() < 0) {
-      // hmm, what happens if this is INT_MIN?
-      d = -d;
-      *out++ = '-';
-    }
+   // hmm, what happens if this is INT_MIN?
+   if (d.count() < 0) d = -d;
+   
     // this may overflow and/or the result may not fit in the
     // target type.
 #ifdef FMT_SAFE_DURATION_CAST
@@ -551,7 +549,15 @@ struct chrono_formatter {
     return time;
   }
 
+  void write_sign() {
+    if (val < 0) {
+      *out++ = '-';
+      val = -val;
+    }
+  }
+
   void write(Rep value, int width) {
+    write_sign();
     if (isnan(value)) return write_nan();
     typedef typename int_traits<int>::main_type main_type;
     main_type n = to_unsigned(to_int(value));
@@ -689,7 +695,7 @@ struct chrono_formatter {
     if (handle_nan_inf()) {
       return;
     }
-
+    write_sign();
     out = format_chrono_duration_value(out, val, precision);
   }
 
