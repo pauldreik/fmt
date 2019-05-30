@@ -30,10 +30,13 @@ template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
   Data += N;
   Size -= N;
 
-  if(std::is_floating_point<Item>::value || std::numeric_limits<Item>::is_signed) {
-      if(item<0) {
-      //avoid problems with negative numbers until https://github.com/fmtlib/fmt/issues/1178 is solved
-      return;
+  // see https://github.com/fmtlib/fmt/issues/1178
+  const bool github_1178_is_solved=true;
+  if(!github_1178_is_solved) {
+      if(std::is_floating_point<Item>::value || std::numeric_limits<Item>::is_signed) {
+          if(item<0) {
+              return;
+          }
       }
   }
 
