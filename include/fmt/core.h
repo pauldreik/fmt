@@ -192,36 +192,38 @@
      (__cplusplus > 201402L || defined(_LIBCPP_VERSION))) || \
     (defined(_MSVC_LANG) && _MSVC_LANG > 201402L && _MSC_VER >= 1910)
 #  include <string_view>
-#  define FMT_STRING_VIEW std::basic_string_view
-#elif FMT_HAS_INCLUDE(<experimental / string_view>) && __cplusplus >= 201402L
+#  define FMT_USE_STRING_VIEW
+#elif FMT_HAS_INCLUDE("experimental/string_view") && __cplusplus >= 201402L
 #  include <experimental/string_view>
-#  define FMT_STRING_VIEW std::experimental::basic_string_view
+#  define FMT_USE_EXPERIMENTAL_STRING_VIEW
 #endif
-
-// An enable_if helper to be used in template parameters. enable_if in template
-// parameters results in much shorter symbols: https://godbolt.org/z/sWw4vP.
-#define FMT_ENABLE_IF_T(...) typename std::enable_if<(__VA_ARGS__), int>::type
-#define FMT_ENABLE_IF(...) FMT_ENABLE_IF_T(__VA_ARGS__) = 0
 
 FMT_BEGIN_NAMESPACE
 namespace internal {
 
-// An implementation of declval for pre-C++11 compilers such as gcc 4.
-template <typename T>
-typename std::add_rvalue_reference<T>::type declval() FMT_NOEXCEPT;
+#if defined(FMT_USE_STRING_VIEW)
+template <typename Char> using std_string_view = std::basic_string_view<Char>;
+#elif defined(FMT_USE_EXPERIMENTAL_STRING_VIEW)
+template <typename Char>
+using std_string_view = std::experimental::basic_string_view<Char>;
+#else
+template <typename T> struct std_string_view {};
+#endif
 
-template <typename> struct result_of;
+// An enable_if helper to be used in template parameters. enable_if in template
+// parameters results in much shorter symbols: https://godbolt.org/z/sWw4vP.
+template <bool B> using enable_if_t = typename std::enable_if<B, int>::type;
+#define FMT_ENABLE_IF(...) internal::enable_if_t<__VA_ARGS__> = 0
 
 #if (__cplusplus >= 201703L ||                          \
      (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)) && \
     __cpp_lib_is_invocable >= 201703L
 template <typename F, typename... Args>
-struct result_of<F(Args...)> : std::invoke_result<F, Args...> {};
+using invoke_result_t = std::invoke_result_t<F, Args...>;
 #else
-// A workaround for gcc 4.4 that doesn't allow F to be a reference.
+// An implementation of invoke_result for pre-C++17.
 template <typename F, typename... Args>
-struct result_of<F(Args...)>
-    : std::result_of<typename std::remove_reference<F>::type(Args...)> {};
+using invoke_result_t = typename std::result_of<F(Args...)>::type;
 #endif
 
 // Casts nonnegative integer to unsigned.
@@ -350,7 +352,8 @@ typedef char yes[1];
 typedef char no[2];
 
 template <typename T, typename V> struct is_constructible {
-  template <typename U> static yes& test(int (*)[sizeof(new U(declval<V>()))]);
+  template <typename U>
+  static yes& test(int (*)[sizeof(new U(std::declval<V>()))]);
   template <typename U> static no& test(...);
   enum { value = sizeof(test<T>(nullptr)) == sizeof(yes) };
 };
@@ -399,11 +402,11 @@ template <typename Char> class basic_string_view {
       FMT_NOEXCEPT : data_(s.data()),
                      size_(s.size()) {}
 
-#ifdef FMT_STRING_VIEW
-  FMT_CONSTEXPR basic_string_view(FMT_STRING_VIEW<Char> s) FMT_NOEXCEPT
-      : data_(s.data()),
-        size_(s.size()) {}
-#endif
+  template <
+      typename S,
+      FMT_ENABLE_IF(std::is_same<S, internal::std_string_view<Char>>::value)>
+  FMT_CONSTEXPR basic_string_view(S s) FMT_NOEXCEPT : data_(s.data()),
+                                                      size_(s.size()) {}
 
   /** Returns a pointer to the string data. */
   FMT_CONSTEXPR const Char* data() const { return data_; }
@@ -489,12 +492,12 @@ inline basic_string_view<Char> to_string_view(const Char* s) {
   return s;
 }
 
-#ifdef FMT_STRING_VIEW
-template <typename Char>
-inline basic_string_view<Char> to_string_view(FMT_STRING_VIEW<Char> s) {
+template <typename Char,
+          FMT_ENABLE_IF(!std::is_empty<internal::std_string_view<Char>>::value)>
+inline basic_string_view<Char> to_string_view(
+    internal::std_string_view<Char> s) {
   return s;
 }
-#endif
 
 // A base class for compile-time strings. It is defined in the fmt namespace to
 // make formatting functions visible via ADL, e.g. format(fmt("{}"), 42).
@@ -602,16 +605,16 @@ using fmt::v5::to_string_view;
 template <typename S>
 struct is_string
     : std::integral_constant<
-          bool, !std::is_same<dummy_string_view,
-                              decltype(to_string_view(declval<S>()))>::value> {
-};
+          bool,
+          !std::is_same<dummy_string_view,
+                        decltype(to_string_view(std::declval<S>()))>::value> {};
 
 // Forward declare FILE* specialization defined in color.h
 template <> struct is_string<std::FILE*>;
 template <> struct is_string<const std::FILE*>;
 
 template <typename S> struct char_t {
-  typedef decltype(to_string_view(declval<S>())) result;
+  typedef decltype(to_string_view(std::declval<S>())) result;
   typedef typename result::char_type type;
 };
 
@@ -900,8 +903,8 @@ template <typename Context> class basic_format_arg {
       const T& value);
 
   template <typename Visitor, typename Ctx>
-  friend FMT_CONSTEXPR typename internal::result_of<Visitor(int)>::type
-  visit_format_arg(Visitor&& vis, const basic_format_arg<Ctx>& arg);
+  friend FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit_format_arg(
+      Visitor&& vis, const basic_format_arg<Ctx>& arg);
 
   friend class basic_format_args<Context>;
   friend class internal::arg_map<Context>;
@@ -943,7 +946,7 @@ struct monostate {};
   \endrst
  */
 template <typename Visitor, typename Context>
-FMT_CONSTEXPR typename internal::result_of<Visitor(int)>::type visit_format_arg(
+FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit_format_arg(
     Visitor&& vis, const basic_format_arg<Context>& arg) {
   typedef typename Context::char_type char_type;
   switch (arg.type_) {
@@ -982,8 +985,8 @@ FMT_CONSTEXPR typename internal::result_of<Visitor(int)>::type visit_format_arg(
 }
 
 template <typename Visitor, typename Context>
-FMT_DEPRECATED FMT_CONSTEXPR typename internal::result_of<Visitor(int)>::type
-visit(Visitor&& vis, const basic_format_arg<Context>& arg) {
+FMT_DEPRECATED FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit(
+    Visitor&& vis, const basic_format_arg<Context>& arg) {
   return visit_format_arg(std::forward<Visitor>(vis), arg);
 }
 
@@ -1038,8 +1041,8 @@ class locale_ref {
 };
 
 template <typename Context, typename T> struct get_type {
-  typedef decltype(
-      make_value<Context>(declval<typename std::decay<T>::type&>())) value_type;
+  typedef decltype(make_value<Context>(
+      std::declval<typename std::decay<T>::type&>())) value_type;
   static const type value = value_type::type_tag;
 };
 
@@ -1303,16 +1306,9 @@ struct wformat_args : basic_format_args<wformat_context> {
       : basic_format_args<wformat_context>(std::forward<Args>(arg)...) {}
 };
 
-#ifndef FMT_USE_ALIAS_TEMPLATES
-#  define FMT_USE_ALIAS_TEMPLATES FMT_HAS_FEATURE(cxx_alias_templates)
-#endif
-#if FMT_USE_ALIAS_TEMPLATES
 /** String's character type. */
 template <typename S> using char_t = typename internal::char_t<S>::type;
-#  define FMT_CHAR(S) fmt::char_t<S>
-#else
-#  define FMT_CHAR(S) typename internal::char_t<S>::type
-#endif
+#define FMT_CHAR(S) fmt::char_t<S>
 
 namespace internal {
 template <typename Context>
