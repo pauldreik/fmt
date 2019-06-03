@@ -200,15 +200,6 @@ void report_error(FormatFunc func, int error_code,
 }
 }  // namespace
 
-FMT_FUNC size_t internal::count_code_points(basic_string_view<char8_t> s) {
-  const char8_t* data = s.data();
-  size_t num_code_points = 0;
-  for (size_t i = 0, size = s.size(); i != size; ++i) {
-    if ((data[i] & 0xc0) != 0x80) ++num_code_points;
-  }
-  return num_code_points;
-}
-
 #if !defined(FMT_STATIC_THOUSANDS_SEPARATOR)
 namespace internal {
 
@@ -683,7 +674,7 @@ template <int GRISU_VERSION> struct grisu_shortest_handler {
   }
 };
 
-template <typename Double, enable_if_t<sizeof(Double) == sizeof(uint64_t)>>
+template <typename Double, enable_if_t<sizeof(Double) == sizeof(uint64_t), int>>
 FMT_API bool grisu_format(Double value, buffer<char>& buf, int precision,
                           unsigned options, int& exp) {
   FMT_ASSERT(value >= 0, "value is negative");
@@ -968,7 +959,7 @@ FMT_FUNC void report_windows_error(int error_code,
 FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
   memory_buffer buffer;
   internal::vformat_to(buffer, format_str,
-                       basic_format_args<buffer_context<char>::type>(args));
+                       basic_format_args<buffer_context<char>>(args));
   fwrite_fully(buffer.data(), 1, buffer.size(), f);
 }
 

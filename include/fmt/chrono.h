@@ -418,6 +418,17 @@ inline T mod(T x, int y) {
   return std::fmod(x, y);
 }
 
+// If T is an integral type, maps T to its unsigned counterpart, otherwise
+// leaves it unchanged (unlike std::make_unsigned).
+template <typename T, bool INTEGRAL = std::is_integral<T>::value>
+struct make_unsigned_or_unchanged {
+  using type = T;
+};
+
+template <typename T> struct make_unsigned_or_unchanged<T, true> {
+  using type = typename std::make_unsigned<T>::type;
+};
+
 template <typename Rep, typename Period,
           typename std::enable_if<std::is_integral<Rep>::value, int>::type = 0>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
@@ -484,40 +495,39 @@ struct chrono_formatter {
   FormatContext& context;
   OutputIt out;
   int precision;
-  typedef typename std::conditional<std::is_integral<Rep>::value &&
-                                        sizeof(Rep) < sizeof(int),
-                                    int, Rep>::type rep;
+  // rep is unsigned to avoid overflow.
+  using rep = typename std::conditional<
+      std::is_integral<Rep>::value && sizeof(Rep) < sizeof(int), unsigned,
+      typename make_unsigned_or_unchanged<Rep>::type>::type;
   rep val;
   typedef std::chrono::duration<rep> seconds;
   seconds s;
   typedef std::chrono::duration<rep, std::milli> milliseconds;
+  bool negative;
 
   typedef typename FormatContext::char_type char_type;
 
   explicit chrono_formatter(FormatContext& ctx, OutputIt o,
                             std::chrono::duration<Rep, Period> d)
-      : context(ctx), out(o), val(d.count()) {
-   if (d.count() < 0) {
-       //protect against signed integer overflow
-       using TT=std::numeric_limits<Rep>;
-       if(TT::is_integer && TT::is_signed) {
-           if(d.count()==TT::min()) {
-               FMT_THROW(format_error("value would cause UB"));
-           }
-       }
-       d = -d;
-   }
+      : context(ctx), out(o), val(d.count()), negative(false) {
+    if (d.count() < 0) {
+      val = -val;
+      negative = true;
+    }
    
     // this may overflow and/or the result may not fit in the
     // target type.
 #ifdef FMT_SAFE_DURATION_CAST
     int ec;
-    s = safe_duration_cast::safe_duration_cast<seconds>(d, ec);
+    // might need checked conversion (rep!=Rep)
+    auto tmpval=std::chrono::duration<rep, Period>(val);
+    s = safe_duration_cast::safe_duration_cast<seconds>(tmpval, ec);
     if (ec) {
       FMT_THROW(format_error("value would cause UB or the wrong result"));
     }
 #else
-    s = std::chrono::duration_cast<seconds>(d);
+    s = std::chrono::duration_cast<seconds>(
+        std::chrono::duration<rep, Period>(val));
 #endif
   }
 
@@ -558,9 +568,9 @@ struct chrono_formatter {
   }
 
   void write_sign() {
-    if (val < 0) {
+    if (negative) {
       *out++ = '-';
-      val = -val;
+      negative = false;
     }
   }
 
