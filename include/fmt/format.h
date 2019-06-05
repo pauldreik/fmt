@@ -400,6 +400,7 @@ void buffer<T>::append(const U* begin, const U* end) {
 // A UTF-8 code unit type.
 enum char8_t : unsigned char {};
 #endif
+template <> struct is_char<char8_t> : std::true_type {};
 
 // A UTF-8 string view.
 class u8string_view : public basic_string_view<char8_t> {
@@ -702,8 +703,8 @@ FMT_CONSTEXPR bool is_negative(T) {
 template <typename T> struct int_traits {
   // Smallest of uint32_t and uint64_t that is large enough to represent
   // all values of T.
-  typedef typename std::conditional<std::numeric_limits<T>::digits <= 32,
-                                    uint32_t, uint64_t>::type main_type;
+  using main_type =
+      conditional_t<std::numeric_limits<T>::digits <= 32, uint32_t, uint64_t>;
 };
 
 // Static data is placed in this class template to allow header-only
@@ -2036,7 +2037,7 @@ template <typename Char, typename Handler>
 FMT_CONSTEXPR const Char* parse_precision(const Char* begin, const Char* end,
                                           Handler&& handler) {
   ++begin;
-  auto c = begin != end ? *begin : 0;
+  auto c = begin != end ? *begin : Char();
   if ('0' <= c && c <= '9') {
     handler.on_precision(parse_nonnegative_int(begin, end, handler));
   } else if (c == '{') {
@@ -2191,9 +2192,10 @@ FMT_CONSTEXPR const typename ParseContext::char_type* parse_format_specs(
     ParseContext& ctx) {
   // GCC 7.2 requires initializer.
   typedef typename ParseContext::char_type char_type;
-  typename std::conditional<is_formattable<T, format_context>::value,
-                            formatter<T, char_type>,
-                            internal::fallback_formatter<T, char_type>>::type f;
+  conditional_t<is_formattable<T, format_context>::value,
+                formatter<T, char_type>,
+                internal::fallback_formatter<T, char_type>>
+      f;
   return f.parse(ctx);
 }
 
@@ -2257,7 +2259,7 @@ FMT_CONSTEXPR bool do_check_format_string(basic_string_view<Char> s,
 }
 
 template <typename... Args, typename S,
-          enable_if_t<is_compile_string<S>::value, int>>
+          enable_if_t<(is_compile_string<S>::value), int>>
 void check_format_string(S format_str) {
   typedef typename S::char_type char_t;
   FMT_CONSTEXPR_DECL bool invalid_format =
@@ -2774,8 +2776,9 @@ template <typename Range> class basic_writer {
     auto&& it = reserve(1);
     *it++ = value;
   }
-  void write(wchar_t value) {
-    static_assert(std::is_same<char_type, wchar_t>::value, "");
+
+  template <typename Char, FMT_ENABLE_IF(std::is_same<Char, char_type>::value)>
+  void write(Char value) {
     auto&& it = reserve(1);
     *it++ = value;
   }

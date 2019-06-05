@@ -200,6 +200,8 @@ The following user-defined literals are defined in ``fmt/format.h``.
 Utilities
 ---------
 
+.. doxygenclass:: fmt::is_char
+
 .. doxygentypedef:: fmt::char_t
 
 .. doxygenfunction:: fmt::formatted_size(string_view, const Args&...)
@@ -208,7 +210,7 @@ Utilities
 
 .. doxygenfunction:: fmt::to_wstring(const T&)
 
-.. doxygenfunction:: fmt::to_string_view(basic_string_view<Char>)
+.. doxygenfunction:: fmt::to_string_view(const Char *)
 
 .. doxygenfunction:: fmt::join(const Range&, string_view)
 

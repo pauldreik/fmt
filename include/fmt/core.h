@@ -200,13 +200,16 @@
 
 FMT_BEGIN_NAMESPACE
 
-// An implementation of enable_if_t for pre-C++14 systems.
+// Implementations of enable_if_t and other types for pre-C++14 systems.
 template <bool B, class T = void>
 using enable_if_t = typename std::enable_if<B, T>::type;
+template <bool B, class T, class F>
+using conditional_t = typename std::conditional<B, T, F>::type;
 
 // An enable_if helper to be used in template parameters which results in much
-// shorter symbols: https://godbolt.org/z/sWw4vP.
-#define FMT_ENABLE_IF(...) enable_if_t<__VA_ARGS__, int> = 0
+// shorter symbols: https://godbolt.org/z/sWw4vP. Extra parentheses are needed
+// to workaround a bug in MSVC 2019 (see #1140 and #1186).
+#define FMT_ENABLE_IF(...) enable_if_t<(__VA_ARGS__), int> = 0
 
 namespace internal {
 
@@ -441,30 +444,31 @@ template <typename Char> class basic_string_view {
 using string_view = basic_string_view<char>;
 using wstring_view = basic_string_view<wchar_t>;
 
+/** Specifies if ``T`` is a character type. Can be specialized by users. */
+template <typename T> struct is_char : std::false_type {};
+template <> struct is_char<char> : std::true_type {};
+template <> struct is_char<wchar_t> : std::true_type {};
+template <> struct is_char<char16_t> : std::true_type {};
+template <> struct is_char<char32_t> : std::true_type {};
+
 /**
   \rst
-  The function ``to_string_view`` adapts non-intrusively any kind of string or
-  string-like type if the user provides a (possibly templated) overload of
-  ``to_string_view`` which takes an instance of the string class
-  ``StringType<Char>`` and returns a ``fmt::basic_string_view<Char>``.
-  The conversion function must live in the very same namespace as
-  ``StringType<Char>`` to be picked up by ADL. Non-templated string types
-  like f.e. QString must return a ``basic_string_view`` with a fixed matching
-  char type.
+  Returns a string view of `s`. In order to add custom string type support to
+  {fmt} provide an overload of `to_string_view` for it in the same namespace as
+  the type for the argument-dependent lookup to work.
 
   **Example**::
 
     namespace my_ns {
-    inline string_view to_string_view(const my_string &s) {
+    inline string_view to_string_view(const my_string& s) {
       return {s.data(), s.length()};
     }
     }
-
     std::string message = fmt::format(my_string("The answer is {}"), 42);
   \endrst
  */
-template <typename Char>
-inline basic_string_view<Char> to_string_view(basic_string_view<Char> s) {
+template <typename Char, FMT_ENABLE_IF(is_char<Char>::value)>
+inline basic_string_view<Char> to_string_view(const Char* s) {
   return s;
 }
 
@@ -475,7 +479,7 @@ inline basic_string_view<Char> to_string_view(
 }
 
 template <typename Char>
-inline basic_string_view<Char> to_string_view(const Char* s) {
+inline basic_string_view<Char> to_string_view(basic_string_view<Char> s) {
   return s;
 }
 
@@ -589,16 +593,14 @@ dummy_string_view to_string_view(...);
 using fmt::v5::to_string_view;
 
 // Specifies whether S is a string type convertible to fmt::basic_string_view.
+// It should be a constexpr function but MSVC 2017 fails to compile it in
+// enable_if.
 template <typename S>
 struct is_string
     : std::integral_constant<
           bool,
           !std::is_same<dummy_string_view,
                         decltype(to_string_view(std::declval<S>()))>::value> {};
-
-// Forward declare FILE* specialization defined in color.h
-template <> struct is_string<std::FILE*>;
-template <> struct is_string<const std::FILE*>;
 
 template <typename S> struct char_t_impl {
   typedef decltype(to_string_view(std::declval<S>())) result;
@@ -646,10 +648,9 @@ template <typename Char> struct string_value {
 };
 
 template <typename Context> struct custom_value {
+  using parse_context = basic_parse_context<typename Context::char_type>;
   const void* value;
-  void (*format)(const void* arg,
-                 basic_parse_context<typename Context::char_type>& parse_ctx,
-                 Context& ctx);
+  void (*format)(const void* arg, parse_context& parse_ctx, Context& ctx);
 };
 
 template <typename T, typename Context>
@@ -704,10 +705,9 @@ template <typename Context> class value {
     // have different extension points, e.g. `formatter<T>` for `format` and
     // `printf_formatter<T>` for `printf`.
     custom.format = &format_custom_arg<
-        T, typename std::conditional<
-               is_formattable<T, Context>::value,
-               typename Context::template formatter_type<T>,
-               internal::fallback_formatter<T, char_type>>::type>;
+        T, conditional_t<is_formattable<T, Context>::value,
+                         typename Context::template formatter_type<T>,
+                         internal::fallback_formatter<T, char_type>>>;
   }
 
   const named_arg_base<char_type>& as_named_arg() {
@@ -758,12 +758,11 @@ FMT_MAKE_VALUE_SAME(uint_type, unsigned)
 
 // To minimize the number of types we need to deal with, long is translated
 // either to int or to long long depending on its size.
-using long_type =
-    std::conditional<sizeof(long) == sizeof(int), int, long long>::type;
+using long_type = conditional_t<sizeof(long) == sizeof(int), int, long long>;
 FMT_MAKE_VALUE((sizeof(long) == sizeof(int) ? int_type : long_long_type), long,
                long_type)
-using ulong_type = std::conditional<sizeof(unsigned long) == sizeof(unsigned),
-                                    unsigned, unsigned long long>::type;
+using ulong_type = conditional_t<sizeof(unsigned long) == sizeof(unsigned),
+                                 unsigned, unsigned long long>;
 FMT_MAKE_VALUE((sizeof(unsigned long) == sizeof(unsigned) ? uint_type
                                                           : ulong_long_type),
                unsigned long, ulong_type)
@@ -777,7 +776,7 @@ FMT_MAKE_VALUE(uint_type, unsigned char, unsigned)
 template <typename C, typename Char,
           FMT_ENABLE_IF(std::is_same<typename C::char_type, Char>::value)>
 FMT_CONSTEXPR init<C, int, char_type> make_value(Char val) {
-  return val;
+  return {val};
 }
 
 template <typename C,
@@ -1129,9 +1128,8 @@ template <typename Context, typename... Args> class format_arg_store {
   // Packed is a macro on MinGW so use IS_PACKED instead.
   static const bool IS_PACKED = NUM_ARGS < internal::max_packed_args;
 
-  using value_type =
-      typename std::conditional<IS_PACKED, internal::value<Context>,
-                                basic_format_arg<Context>>::type;
+  using value_type = conditional_t<IS_PACKED, internal::value<Context>,
+                                   basic_format_arg<Context>>;
 
   // If the arguments are not packed, add one more element to mark the end.
   static const size_t DATA_SIZE =
@@ -1274,7 +1272,7 @@ template <typename Context> class basic_format_args {
 };
 
 /** An alias to ``basic_format_args<context>``. */
-// It is a separate type rather than a typedef to make symbols readable.
+// It is a separate type rather than an alias to make symbols readable.
 struct format_args : basic_format_args<format_context> {
   template <typename... Args>
   format_args(Args&&... arg)
@@ -1385,6 +1383,8 @@ struct is_contiguous_back_insert_iterator<std::back_insert_iterator<Container>>
     : is_contiguous<Container> {};
 
 /** Formats a string and writes the output to ``out``. */
+// GCC 8 and earlier cannot handle std::back_insert_iterator<Container> with
+// vformat_to<ArgFormatter>(...) overload, so SFINAE on iterator type instead.
 template <typename OutputIt, typename S, typename Char = char_t<S>,
           FMT_ENABLE_IF(is_contiguous_back_insert_iterator<OutputIt>::value)>
 OutputIt vformat_to(OutputIt out, const S& format_str,
