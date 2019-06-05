@@ -32,3 +32,4 @@ FMT.build
 Makefile
 run-msbuild.bat
 fmt.pc
+build-*/
