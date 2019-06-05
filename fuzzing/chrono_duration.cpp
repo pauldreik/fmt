@@ -13,7 +13,9 @@ template <typename Item, typename Ratio>
 void doit_impl(fmt::string_view formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
   try {
-    std::string message = fmt::format(formatstring, value);
+    //std::string message = fmt::format(formatstring, value);
+    fmt::memory_buffer buf;
+    fmt::format_to(buf, formatstring, value);
   } catch (std::exception& e) {
   }
 }
