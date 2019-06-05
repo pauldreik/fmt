@@ -7,11 +7,10 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
-
 #include <fmt/chrono.h>
 
 template <typename Item, typename Ratio>
-void doit_impl(const char* formatstring, const Item item) {
+void doit_impl(fmt::string_view formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
   try {
     std::string message = fmt::format(formatstring, value);
@@ -31,6 +30,7 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
   if (Size <= Nfixed + 1) {
     return;
   }
+  static_assert(std::is_trivially_constructible<Item>::value,"Item must be blittable");
   Item item{};
   std::memcpy(&item, Data, N);
 
@@ -49,57 +49,69 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
     }
   }
 
-  // allocates as tight as possible, making it easier to catch buffer overruns
-  // also, make it null terminated.
-  std::vector<char> buf(Size + 1);
+  // Data is already allocated separately in libFuzzer so reading past
+  // the end will most likely be detected anyway
+
+  // see https://github.com/fmtlib/fmt/issues/1194
+#define GITHUB_1194_IS_SOLVED 0
+#if GITHUB_1194_IS_SOLVED
+  const auto formatstring=fmt::string_view((const char*)Data, Size);
+#else
+  // needs a null terminator, so allocate separately
+  std::vector<char> buf(Size+1);
   std::memcpy(buf.data(), Data, Size);
+  const auto formatstring=fmt::string_view(buf.data(), Size);
+#endif
+
+
+
   // doit_impl<Item,std::yocto>(buf.data(),item);
   // doit_impl<Item,std::zepto>(buf.data(),item);
   switch (scaling) {
   case 1:
-      doit_impl<Item, std::atto>(buf.data(), item);
+      doit_impl<Item, std::atto>(formatstring, item);
       break;
   case 2:
-      doit_impl<Item, std::femto>(buf.data(), item);
+      doit_impl<Item, std::femto>(formatstring, item);
       break;
   case 3:
-      doit_impl<Item, std::pico>(buf.data(), item);
+      doit_impl<Item, std::pico>(formatstring, item);
       break;
   case 4:
-      doit_impl<Item, std::nano>(buf.data(), item);
+      doit_impl<Item, std::nano>(formatstring, item);
       break;
   case 5:
-      doit_impl<Item, std::micro>(buf.data(), item);
+      doit_impl<Item, std::micro>(formatstring, item);
       break;
   case 6:
-      doit_impl<Item, std::milli>(buf.data(), item);
+      doit_impl<Item, std::milli>(formatstring, item);
       break;
   case 7:
-      doit_impl<Item, std::centi>(buf.data(), item);
+      doit_impl<Item, std::centi>(formatstring, item);
       break;
   case 8:
-      doit_impl<Item, std::deci>(buf.data(), item);
+      doit_impl<Item, std::deci>(formatstring, item);
       break;
   case 9:
-      doit_impl<Item, std::deca>(buf.data(), item);
+      doit_impl<Item, std::deca>(formatstring, item);
       break;
   case 10:
-      doit_impl<Item, std::kilo>(buf.data(), item);
+      doit_impl<Item, std::kilo>(formatstring, item);
       break;
   case 11:
-      doit_impl<Item, std::mega>(buf.data(), item);
+      doit_impl<Item, std::mega>(formatstring, item);
       break;
   case 12:
-      doit_impl<Item, std::giga>(buf.data(), item);
+      doit_impl<Item, std::giga>(formatstring, item);
      break;
   case 13:
-      doit_impl<Item, std::tera>(buf.data(), item);
+      doit_impl<Item, std::tera>(formatstring, item);
       break;
   case 14:
-      doit_impl<Item, std::peta>(buf.data(), item);
+      doit_impl<Item, std::peta>(formatstring, item);
       break;
   case 15:
-      doit_impl<Item, std::exa>(buf.data(), item);
+      doit_impl<Item, std::exa>(formatstring, item);
   }
   // doit_impl<Item,std::zeta>(buf.data(),item);
   // doit_impl<Item,std::yotta>(buf.data(),item);
