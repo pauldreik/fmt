@@ -32,7 +32,7 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
   if (Size <= Nfixed + 1) {
     return;
   }
-  static_assert(std::is_trivially_constructible<Item>::value,"Item must be blittable");
+  static_assert(std::is_trivially_copyable<Item>::value,"Item must be blittable");
   Item item{};
   std::memcpy(&item, Data, N);
 
@@ -55,7 +55,7 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
   // the end will most likely be detected anyway
 
   // see https://github.com/fmtlib/fmt/issues/1194
-#define GITHUB_1194_IS_SOLVED 0
+#define GITHUB_1194_IS_SOLVED 1
 #if GITHUB_1194_IS_SOLVED
   const auto formatstring=fmt::string_view((const char*)Data, Size);
 #else
