@@ -11,16 +11,15 @@
 
 constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
 
-template<class Item>
+template <class Item>
 Item assignFromBuf(const uint8_t* Data, std::size_t Size) {
-    Item item{};
-    std::memcpy(&item, Data, sizeof(Item));
-    return item;
+  Item item{};
+  std::memcpy(&item, Data, sizeof(Item));
+  return item;
 }
 
-template<>
-bool assignFromBuf<bool>(const uint8_t* Data, std::size_t Size) {
-return  !!Data[0];
+template <> bool assignFromBuf<bool>(const uint8_t* Data, std::size_t Size) {
+  return !!Data[0];
 }
 
 template <typename Item1, typename Item2>
@@ -32,11 +31,11 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   if (Size <= Nmax + Nmax) {
     return;
   }
-  Item1 item1=assignFromBuf<Item1>(Data,Size);
+  Item1 item1 = assignFromBuf<Item1>(Data, Size);
   Data += Nmax;
   Size -= Nmax;
 
-  Item2 item2=assignFromBuf<Item2>(Data,Size);
+  Item2 item2 = assignFromBuf<Item2>(Data, Size);
   Data += Nmax;
   Size -= Nmax;
 
@@ -118,8 +117,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
 
   auto outer = [=](auto param1) {
     auto inner = [=](auto param2) {
-      // std::cout<<"invoked with param1="<<sizeof(param1)<<"
-      // param2="<<sizeof(param2)<<'\n';
       invoke_fmt<decltype(param1), decltype(param2)>(Data, Size);
     };
     invoke(second, inner);
