@@ -9,7 +9,7 @@
 
 #include <fmt/chrono.h>
 
-template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
+template <typename Item> void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   const auto N = sizeof(Item);
   if (Size <= N) {
     return;
@@ -22,14 +22,20 @@ template <typename Item> void doit(const uint8_t* Data, std::size_t Size) {
   }
   Data += N;
   Size -= N;
-  // allocates as tight as possible, making it easier to catch buffer overruns
-  // also, make it null terminated.
-  std::vector<char> buf(Size + 1);
-  std::memcpy(buf.data(), Data, Size);
-  std::string message = fmt::format(buf.data(), item);
+
+#define SEPARATE_ALLOCATION 1
+#if SEPARATE_ALLOCATION
+  // allocates as tight as possible, making it easier to catch buffer overruns.
+  std::vector<char> fmtstringbuffer(Size);
+  std::memcpy(fmtstringbuffer.data(), Data, Size);
+  auto fmtstring = fmt::string_view(fmtstringbuffer.data(), Size);
+#else
+  auto fmtstring = fmt::string_view((const char*)Data, Size);
+#endif
+  std::string message = fmt::format(fmtstring, item);
 }
 
-void doit_time(const uint8_t* Data, std::size_t Size) {
+void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
   using Item = std::time_t;
   const auto N = sizeof(Item);
   if (Size <= N) {
@@ -39,13 +45,17 @@ void doit_time(const uint8_t* Data, std::size_t Size) {
   std::memcpy(&item, Data, N);
   Data += N;
   Size -= N;
+#if SEPARATE_ALLOCATION
   // allocates as tight as possible, making it easier to catch buffer overruns.
-  // also, make it null terminated.
-  std::vector<char> buf(Size + 1);
-  std::memcpy(buf.data(), Data, Size);
+  std::vector<char> fmtstringbuffer(Size);
+  std::memcpy(fmtstringbuffer.data(), Data, Size);
+  auto fmtstring = fmt::string_view(fmtstringbuffer.data(), Size);
+#else
+  auto fmtstring = fmt::string_view((const char*)Data, Size);
+#endif
   auto* b = std::localtime(&item);
   if (b) {
-    std::string message = fmt::format(buf.data(), *b);
+    std::string message = fmt::format(fmtstring, *b);
   }
 }
 
@@ -61,31 +71,46 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   try {
     switch (first) {
     case 0:
-      doit<bool>(Data, Size);
+      invoke_fmt<bool>(Data, Size);
       break;
     case 1:
-      doit<char>(Data, Size);
-      break;
-    case 2:
-      doit<short>(Data, Size);
-      break;
+        invoke_fmt<char>(Data, Size);
+        break;
+      case 2:
+        invoke_fmt<unsigned char>(Data, Size);
+        break;
     case 3:
-      doit<int>(Data, Size);
+      invoke_fmt<signed char>(Data, Size);
       break;
     case 4:
-      doit<long>(Data, Size);
-      break;
+      invoke_fmt<short>(Data, Size);
+      break;      
     case 5:
-      doit<float>(Data, Size);
+      invoke_fmt<unsigned short>(Data, Size);
       break;
     case 6:
-      doit<double>(Data, Size);
+      invoke_fmt<int>(Data, Size);
       break;
     case 7:
-      doit<long double>(Data, Size);
+      invoke_fmt<unsigned int>(Data, Size);
       break;
     case 8:
-      doit_time(Data, Size);
+      invoke_fmt<long>(Data, Size);
+      break;
+    case 9:
+      invoke_fmt<unsigned long>(Data, Size);
+      break;
+    case 10:
+      invoke_fmt<float>(Data, Size);
+      break;
+    case 11:
+      invoke_fmt<double>(Data, Size);
+      break;
+    case 12:
+      invoke_fmt<long double>(Data, Size);
+      break;
+    case 13:
+      invoke_fmt_time(Data, Size);
       break;
     default:
       break;
