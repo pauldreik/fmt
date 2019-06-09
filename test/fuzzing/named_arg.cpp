@@ -29,15 +29,15 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
     return;
   }
 
-  //allocating buffers separately is slower, but increases chances
-  //of detecting memory errors
+  // allocating buffers separately is slower, but increases chances
+  // of detecting memory errors
 #define SEPARATE_ALLOCATION 1
 #if SEPARATE_ALLOCATION
   std::vector<char> argnamebuffer(argsize);
   std::memcpy(argnamebuffer.data(), Data, argsize);
-  auto argname=fmt::string_view(argnamebuffer.data(),argsize);
-        #else
-   auto argname=fmt::string_view((const char*)Data,argsize);
+  auto argname = fmt::string_view(argnamebuffer.data(), argsize);
+#else
+  auto argname = fmt::string_view((const char*)Data, argsize);
 #endif
   Data += argsize;
   Size -= argsize;
@@ -46,15 +46,13 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
   // allocates as tight as possible, making it easier to catch buffer overruns.
   std::vector<char> fmtstringbuffer(Size);
   std::memcpy(fmtstringbuffer.data(), Data, Size);
-  auto fmtstring=fmt::string_view(fmtstringbuffer.data(),Size);
+  auto fmtstring = fmt::string_view(fmtstringbuffer.data(), Size);
 #else
-  auto fmtstring=fmt::string_view((const char*)Data,Size);
+  auto fmtstring = fmt::string_view((const char*)Data, Size);
 #endif
-  std::string message =
-      fmt::format(fmtstring, fmt::arg(argname, item1));
+  std::string message = fmt::format(fmtstring, fmt::arg(argname, item1));
 #undef SEPARATE_ALLOCATION
 }
-
 
 // for dynamic dispatching to an explicit instantiation
 template <typename Callback> void invoke(int index, Callback callback) {
@@ -63,21 +61,21 @@ template <typename Callback> void invoke(int index, Callback callback) {
     callback(bool{});
     break;
   case 1:
-    callback(char{});    
+    callback(char{});
     break;
   case 11:
-      using sc=signed char;
+    using sc = signed char;
     callback(sc{});
     break;
   case 21:
-      using uc=unsigned char;
+    using uc = unsigned char;
     callback(uc{});
     break;
   case 2:
     callback(short{});
     break;
   case 22:
-      using us=unsigned short;
+    using us = unsigned short;
     callback(us{});
     break;
   case 3:
@@ -90,7 +88,7 @@ template <typename Callback> void invoke(int index, Callback callback) {
     callback(long{});
     break;
   case 14:
-      using ul=unsigned long;
+    using ul = unsigned long;
     callback(ul{});
     break;
   case 5:
@@ -117,7 +115,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   Data++;
   Size--;
 
-  auto outerfcn = [=](auto param1) { invoke_fmt<decltype(param1)>(Data, Size, second); };
+  auto outerfcn = [=](auto param1) {
+    invoke_fmt<decltype(param1)>(Data, Size, second);
+  };
 
   try {
     invoke(first, outerfcn);

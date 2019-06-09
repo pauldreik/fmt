@@ -1,23 +1,23 @@
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
 
+#include <fmt/chrono.h>
 #include <fmt/core.h>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
-#include <fmt/chrono.h>
 
 template <typename Item, typename Ratio>
 void invoke_inner(fmt::string_view formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
   try {
-      // Don't switch these two dynamically,
-      // there is already a large combinatoric explosion
-      // of type and ratio, causing afl to suffer and the corpus
-      // getting enormous. Occasionally, flip this switch and
-      // try manually.
+    // Don't switch these two dynamically,
+    // there is already a large combinatoric explosion
+    // of type and ratio, causing afl to suffer and the corpus
+    // getting enormous. Occasionally, flip this switch and
+    // try manually.
 #if 0
     std::string message = fmt::format(formatstring, value);
 #else
@@ -31,74 +31,75 @@ void invoke_inner(fmt::string_view formatstring, const Item item) {
 // Item is the underlying type for duration (int, long etc)
 template <typename Item>
 void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
-    //always use a fixed location of the data, so different cases will
-    //cooperate better. the same bit pattern, interpreted as another type,
-    //is likely interesting.
-  constexpr auto Nfixed=std::max(sizeof(long double),sizeof(std::intmax_t));
+  // always use a fixed location of the data, so different cases will
+  // cooperate better. the same bit pattern, interpreted as another type,
+  // is likely interesting.
+  constexpr auto Nfixed = std::max(sizeof(long double), sizeof(std::intmax_t));
   constexpr auto N = sizeof(Item);
-  static_assert(N<=Nfixed, "fixed size is too small");
+  static_assert(N <= Nfixed, "fixed size is too small");
   if (Size <= Nfixed + 1) {
     return;
   }
-  static_assert(std::is_trivially_copyable<Item>::value, "Item must be blittable");
+  static_assert(std::is_trivially_copyable<Item>::value,
+                "Item must be blittable");
   Item item{};
   std::memcpy(&item, Data, N);
 
-  //fast forward
+  // fast forward
   Data += Nfixed;
   Size -= Nfixed;
 
   // Data is already allocated separately in libFuzzer so reading past
   // the end will most likely be detected anyway
-  const auto formatstring=fmt::string_view((const char*)Data, Size);
+  const auto formatstring = fmt::string_view((const char*)Data, Size);
 
   // doit_impl<Item,std::yocto>(buf.data(),item);
   // doit_impl<Item,std::zepto>(buf.data(),item);
   switch (scaling) {
   case 1:
-      invoke_inner<Item, std::atto>(formatstring, item);
-      break;
+    invoke_inner<Item, std::atto>(formatstring, item);
+    break;
   case 2:
-      invoke_inner<Item, std::femto>(formatstring, item);
-      break;
+    invoke_inner<Item, std::femto>(formatstring, item);
+    break;
   case 3:
-      invoke_inner<Item, std::pico>(formatstring, item);
-      break;
+    invoke_inner<Item, std::pico>(formatstring, item);
+    break;
   case 4:
-      invoke_inner<Item, std::nano>(formatstring, item);
-      break;
+    invoke_inner<Item, std::nano>(formatstring, item);
+    break;
   case 5:
-      invoke_inner<Item, std::micro>(formatstring, item);
-      break;
+    invoke_inner<Item, std::micro>(formatstring, item);
+    break;
   case 6:
-      invoke_inner<Item, std::milli>(formatstring, item);
-      break;
+    invoke_inner<Item, std::milli>(formatstring, item);
+    break;
   case 7:
-      invoke_inner<Item, std::centi>(formatstring, item);
-      break;
+    invoke_inner<Item, std::centi>(formatstring, item);
+    break;
   case 8:
-      invoke_inner<Item, std::deci>(formatstring, item);
-      break;
+    invoke_inner<Item, std::deci>(formatstring, item);
+    break;
   case 9:
-      invoke_inner<Item, std::deca>(formatstring, item);
-      break;
+    invoke_inner<Item, std::deca>(formatstring, item);
+    break;
   case 10:
-      invoke_inner<Item, std::kilo>(formatstring, item);
-      break;
+    invoke_inner<Item, std::kilo>(formatstring, item);
+    break;
   case 11:
-      invoke_inner<Item, std::mega>(formatstring, item);
-      break;
+    invoke_inner<Item, std::mega>(formatstring, item);
+    break;
   case 12:
-      invoke_inner<Item, std::giga>(formatstring, item);
-     break;
+    invoke_inner<Item, std::giga>(formatstring, item);
+    break;
   case 13:
-      invoke_inner<Item, std::tera>(formatstring, item);
-      break;
+    invoke_inner<Item, std::tera>(formatstring, item);
+    break;
   case 14:
-      invoke_inner<Item, std::peta>(formatstring, item);
-      break;
+    invoke_inner<Item, std::peta>(formatstring, item);
+    break;
   case 15:
-      invoke_inner<Item, std::exa>(formatstring, item);
+    invoke_inner<Item, std::exa>(formatstring, item);
   }
   // doit_impl<Item,std::zeta>(buf.data(),item);
   // doit_impl<Item,std::yotta>(buf.data(),item);
@@ -111,8 +112,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
 
   const auto representation = Data[0];
   const auto scaling = Data[1];
-  Data+=2;
-  Size-=2;
+  Data += 2;
+  Size -= 2;
 
   switch (representation) {
   case 1:
