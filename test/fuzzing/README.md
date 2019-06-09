@@ -1,14 +1,7 @@
 # FMT Fuzzer
-This is for fuzzing libfmt which is proposed for standardization, so it's extra
-important that bugs are smoked out.
+Fuzzing has revealed [several bugs](https://github.com/fmtlib/fmt/issues?&q=is%3Aissue+fuzz) in fmt. It is a part of the continous fuzzing at [oss-fuzz](https://github.com/google/oss-fuzz)
 
-It has found bugs:
-- [fmt github #1124](https://github.com/fmtlib/fmt/issues/1124)
-- [fmt github #1127](https://github.com/fmtlib/fmt/issues/1127)
-
-Unfortunately one has to limit the maximum memory allocation, otherwise
-the fuzzing will soon interrupt after trying to allocate many GB of memory.
-Therefore, the code includes blocks like:
+The source code is modified to make the fuzzing possible without locking up on resource exhaustion:
 ```cpp
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 if(spec.precision>100000) {
@@ -18,24 +11,24 @@ if(spec.precision>100000) {
 ```
 This macro is the defacto standard for making fuzzing practically possible, see [the libFuzzer documentation](https://llvm.org/docs/LibFuzzer.html#fuzzer-friendly-build-mode).
 
-To do a variety of builds making sure the build system works as intended,
-execute ```./build.sh```.
+## Running the fuzzers locally
+There is a (helper script)[./build.sh] to build the fuzzers, which has only been tested on Debian and Ubuntu linux. There should be no problems fuzzing on Windows (using a recent clang) or Mac, but the script will probably not work.
 
-# Reproduce
-To reproduce a crash, there are at least two ways.
-## Reproduce with a normal build
-This will build a normal executable, fed with input from the files given on the command line. This gives an example for the chrono_duration fuzzer:
+Something along
 ```sh
-./build.sh
-cd build-fuzzers-reproduce
-bin/fuzzer_chrono_duration  ../crashes/chrono_duration/*
+mkdir build
+cd build
+export CXX=clang++
+export CXXFLAGS="-fsanitize=fuzzer-no-link -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION= -g"
+cmake ..  -DFMT_SAFE_DURATION_CAST=On -DFMT_FUZZ=On -DFMT_FUZZ_LINKMAIN=Off -DFMT_FUZZ_LDFLAGS="-fsanitize=fuzzer"
+cmake --build .
 ```
+should work to build the fuzzers for all platforms which clang supports.
 
-## Reproduce using libFuzzer
-This will build libFuzzer, fed with input from the files given on the command line. The default libFuzzer build uses sanitizers, so this may catch errors not seen in the normal build. This gives an example for the chrono_duration fuzzer:
+Execute a fuzzer with for instance
 ```sh
-./build.sh
-cd build-fuzzers-reproduce
+cd build
 export UBSAN_OPTIONS=halt_on_error=1
-bin/fuzzer_chrono_duration  ../crashes/chrono_duration/*
+mkdir out_chrono
+bin/fuzzer_chrono_duration  out_chrono
 ```
