@@ -398,13 +398,13 @@ inline bool isfinite(T value) {
 }
 template <typename T> inline int to_int(T value) {
   FMT_ASSERT(!isnan(value), "nan to int conversion is UB");
- if(std::numeric_limits<T>::is_signed) {
-      //this covers both float and integers
-          FMT_ASSERT(value >= (std::numeric_limits<int>::min)(),
-                     "value is too small to fit in an int");
+  if (std::numeric_limits<T>::is_signed) {
+    // this covers both float and integers
+    FMT_ASSERT(value >= (std::numeric_limits<int>::min)(),
+               "value is too small to fit in an int");
   }
   FMT_ASSERT(value <= (std::numeric_limits<int>::max)(),
-                "value is too large to fit in an int");
+             "value is too large to fit in an int");
 
   return static_cast<int>(value);
 }
@@ -513,13 +513,13 @@ struct chrono_formatter {
       val = -val;
       negative = true;
     }
-   
+
     // this may overflow and/or the result may not fit in the
     // target type.
 #ifdef FMT_SAFE_DURATION_CAST
     int ec;
     // might need checked conversion (rep!=Rep)
-    auto tmpval=std::chrono::duration<rep, Period>(val);
+    auto tmpval = std::chrono::duration<rep, Period>(val);
     s = safe_duration_cast::safe_duration_cast<seconds>(tmpval, ec);
     if (ec) {
       FMT_THROW(format_error("value would cause UB or the wrong result"));
@@ -660,16 +660,16 @@ struct chrono_formatter {
     if (ns == numeric_system::standard) {
       write(second(), 2);
 #ifdef FMT_SAFE_DURATION_CAST
-    int ec;
-    //convert rep->Rep
-    using Crep=std::chrono::duration<rep, Period>;
-    using CRep=std::chrono::duration<Rep, Period>;
-    auto tmpval = safe_duration_cast::safe_duration_cast<CRep>(Crep{val}, ec);
-    if (ec) {
-      FMT_THROW(format_error("value would cause UB or the wrong result"));
-    }
+      int ec;
+      // convert rep->Rep
+      using Crep = std::chrono::duration<rep, Period>;
+      using CRep = std::chrono::duration<Rep, Period>;
+      auto tmpval = safe_duration_cast::safe_duration_cast<CRep>(Crep{val}, ec);
+      if (ec) {
+        FMT_THROW(format_error("value would cause UB or the wrong result"));
+      }
 #else
-      auto tmpval=std::chrono::duration<Rep, Period>(val);
+      auto tmpval = std::chrono::duration<Rep, Period>(val);
 #endif
       auto ms = get_milliseconds(tmpval);
       if (ms != std::chrono::milliseconds(0)) {

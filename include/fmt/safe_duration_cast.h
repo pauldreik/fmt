@@ -20,9 +20,9 @@
 // https://en.cppreference.com/w/User:D41D8CD98F/feature_testing_macros#C.2B.2B17
 
 #if __cpp_constexpr >= 201304
-#define SDC_RELAXED_CONSTEXPR constexpr
+#  define SDC_RELAXED_CONSTEXPR constexpr
 #else
-#define SDC_RELAXED_CONSTEXPR
+#  define SDC_RELAXED_CONSTEXPR
 #endif
 
 FMT_BEGIN_NAMESPACE
@@ -33,91 +33,75 @@ namespace safe_duration_cast {
  * converts From to To, without loss. If the dynamic value of from
  * can't be converted to To without loss, ec is set.
  */
-template<typename To, typename From,
-         FMT_ENABLE_IF(!std::is_same<From,To>::value)         >
-SDC_RELAXED_CONSTEXPR To
-lossless_integral_conversion(const From from, int& ec)
-{
+template <typename To, typename From,
+          FMT_ENABLE_IF(!std::is_same<From, To>::value)>
+SDC_RELAXED_CONSTEXPR To lossless_integral_conversion(const From from,
+                                                      int& ec) {
   ec = 0;
   using F = std::numeric_limits<From>;
   using T = std::numeric_limits<To>;
   static_assert(F::is_integer, "From must be integral");
   static_assert(T::is_integer, "To must be integral");
 
-  if
-    (F::is_signed == T::is_signed)
-    {
-      // A and B are both signed, or both unsigned.
-      if
-        (F::digits <= T::digits)
-        {
-          // From fits in To without any problem
-        }
-      else {
-        // From does not always fit in To, resort to a dynamic check.
-        if (from < T::min() || from > T::max()) {
-          // outside range.
-          ec = 1;
-          return {};
-        }
-      }
-    }
-
-  if
-    (F::is_signed && !T::is_signed)
-    {
-      // From may be negative, not allowed!
-      if (from < 0) {
+  if (F::is_signed == T::is_signed) {
+    // A and B are both signed, or both unsigned.
+    if (F::digits <= T::digits) {
+      // From fits in To without any problem
+    } else {
+      // From does not always fit in To, resort to a dynamic check.
+      if (from < T::min() || from > T::max()) {
+        // outside range.
         ec = 1;
         return {};
       }
+    }
+  }
 
-      // From is positive. Can it always fit in To?
-      if
-        (F::digits <= T::digits)
-        {
-          // yes, From always fits in To.
-        }
-      else {
-        // from may not fit in To, we have to do a dynamic check
-        if (from > T::max()) {
-          ec = 1;
-          return {};
-        }
-      }
+  if (F::is_signed && !T::is_signed) {
+    // From may be negative, not allowed!
+    if (from < 0) {
+      ec = 1;
+      return {};
     }
 
-  if
-    (!F::is_signed && T::is_signed)
-    {
-      // can from be held in To?
-      if
-        (F::digits < T::digits)
-        {
-          // yes, From always fits in To.
-        }
-      else {
-        // from may not fit in To, we have to do a dynamic check
-        if (from > T::max()) {
-          // outside range.
-          ec = 1;
-          return {};
-        }
+    // From is positive. Can it always fit in To?
+    if (F::digits <= T::digits) {
+      // yes, From always fits in To.
+    } else {
+      // from may not fit in To, we have to do a dynamic check
+      if (from > T::max()) {
+        ec = 1;
+        return {};
       }
     }
+  }
+
+  if (!F::is_signed && T::is_signed) {
+    // can from be held in To?
+    if (F::digits < T::digits) {
+      // yes, From always fits in To.
+    } else {
+      // from may not fit in To, we have to do a dynamic check
+      if (from > T::max()) {
+        // outside range.
+        ec = 1;
+        return {};
+      }
+    }
+  }
 
   // reaching here means all is ok for lossless conversion.
   return static_cast<To>(from);
 
-} // function
+}  // function
 
-template<typename To, typename From,
-         FMT_ENABLE_IF(std::is_same<From,To>::value)         >
-SDC_RELAXED_CONSTEXPR To
-        lossless_integral_conversion(const From from, int& ec) {
-    ec=0;
-    return from;
-} // function
+template <typename To, typename From,
+          FMT_ENABLE_IF(std::is_same<From, To>::value)>
+SDC_RELAXED_CONSTEXPR To lossless_integral_conversion(const From from,
+                                                      int& ec) {
+  ec = 0;
+  return from;
+}  // function
 
 /**
  * converts From to To if possible, otherwise ec is set.
@@ -126,16 +110,13 @@ SDC_RELAXED_CONSTEXPR To
  * ---------------------------------|---------------
  * NaN                              | NaN
  * Inf                              | Inf
- * normal, fits in output           | converted (possibly with loss of precision)
- * normal, does not fit in output   | ec is set
- * subnormal                        | best effort
- * -Inf                             | -Inf
+ * normal, fits in output           | converted (possibly with loss of
+ * precision) normal, does not fit in output   | ec is set subnormal | best
+ * effort -Inf                             | -Inf
  */
-template<typename To, typename From,
-         FMT_ENABLE_IF(!std::is_same<From,To>::value)         >
-SDC_RELAXED_CONSTEXPR To
-safe_float_conversion(const From from, int& ec)
-{
+template <typename To, typename From,
+          FMT_ENABLE_IF(!std::is_same<From, To>::value)>
+SDC_RELAXED_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
   ec = 0;
   using T = std::numeric_limits<To>;
   static_assert(std::is_floating_point<From>::value, "From must be floating");
@@ -153,25 +134,24 @@ safe_float_conversion(const From from, int& ec)
 
   // nan and inf will be preserved
   return static_cast<To>(from);
-} // function
+}  // function
 
-template<typename To, typename From,
-         FMT_ENABLE_IF(std::is_same<From,To>::value)>
-SDC_RELAXED_CONSTEXPR To
-        safe_float_conversion(const From from, int& ec) {
-    ec=0;
-    static_assert(std::is_floating_point<From>::value, "From must be floating");
-    return from;
+template <typename To, typename From,
+          FMT_ENABLE_IF(std::is_same<From, To>::value)>
+SDC_RELAXED_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
+  ec = 0;
+  static_assert(std::is_floating_point<From>::value, "From must be floating");
+  return from;
 }
 
 /**
  * safe duration cast between integral durations
  */
-template<typename To, typename FromRep, typename FromPeriod,
+template <typename To, typename FromRep, typename FromPeriod,
           FMT_ENABLE_IF(std::is_integral<FromRep>::value),
-         FMT_ENABLE_IF(std::is_integral<typename To::rep>::value)>
-To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from, int& ec)
-{
+          FMT_ENABLE_IF(std::is_integral<typename To::rep>::value)>
+To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
+                      int& ec) {
   using From = std::chrono::duration<FromRep, FromPeriod>;
   ec = 0;
   // the basic idea is that we need to convert from count() in the from type
@@ -186,68 +166,65 @@ To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from, int& ec)
   // overflow/underflow. let's start by finding a suitable type that can hold
   // both To, From and Factor::num
   using IntermediateRep =
-    typename std::common_type<typename From::rep,
-                              typename To::rep,
-                              decltype(Factor::num)>::type;
+      typename std::common_type<typename From::rep, typename To::rep,
+                                decltype(Factor::num)>::type;
 
   // safe conversion to IntermediateRep
   IntermediateRep count =
-    lossless_integral_conversion<IntermediateRep>(from.count(), ec);
+      lossless_integral_conversion<IntermediateRep>(from.count(), ec);
   if (ec) {
     return {};
   }
   // multiply with Factor::num without overflow or underflow
-  if
-    (Factor::num != 1)
-    {
-      constexpr auto max1 =
+  if (Factor::num != 1) {
+    constexpr auto max1 =
         std::numeric_limits<IntermediateRep>::max() / Factor::num;
-      if (count > max1) {
-        ec = 1;
-        return {};
-      }
-      constexpr auto min1 =
-        std::numeric_limits<IntermediateRep>::min() / Factor::num;
-      if (count < min1) {
-        ec = 1;
-        return {};
-      }
-      count *= Factor::num;
+    if (count > max1) {
+      ec = 1;
+      return {};
     }
+    constexpr auto min1 =
+        std::numeric_limits<IntermediateRep>::min() / Factor::num;
+    if (count < min1) {
+      ec = 1;
+      return {};
+    }
+    count *= Factor::num;
+  }
 
   // this can't go wrong, right? den>0 is checked earlier.
-  if
-    (Factor::den != 1) { count /= Factor::den; }
+  if (Factor::den != 1) {
+    count /= Factor::den;
+  }
   // convert to the to type, safely
   using ToRep = typename To::rep;
   const ToRep tocount = lossless_integral_conversion<ToRep>(count, ec);
   if (ec) {
     return {};
   }
-  return To{ tocount };
+  return To{tocount};
 }
-
 
 /**
  * safe duration_cast between floating point durations
  */
-template<typename To, typename FromRep, typename FromPeriod,
+template <typename To, typename FromRep, typename FromPeriod,
           FMT_ENABLE_IF(std::is_floating_point<FromRep>::value),
-         FMT_ENABLE_IF(std::is_floating_point<typename To::rep>::value)>
-To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from, int& ec)
-{
+          FMT_ENABLE_IF(std::is_floating_point<typename To::rep>::value)>
+To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
+                      int& ec) {
   using From = std::chrono::duration<FromRep, FromPeriod>;
   ec = 0;
   if (std::isnan(from.count())) {
     // nan in, gives nan out. easy.
-    return To{ std::numeric_limits<typename To::rep>::quiet_NaN() };
+    return To{std::numeric_limits<typename To::rep>::quiet_NaN()};
   }
   // maybe we should also check if from is denormal, and decide what to do about
   // it.
 
   // +-inf should be preserved.
   if (std::isinf(from.count())) {
-    return To{ from.count() };
+    return To{from.count()};
   }
 
   // the basic idea is that we need to convert from count() in the from type
@@ -262,39 +239,38 @@ To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from, int& ec)
   // overflow/underflow. let's start by finding a suitable type that can hold
   // both To, From and Factor::num
   using IntermediateRep =
-    typename std::common_type<typename From::rep,
-                              typename To::rep,
-                              decltype(Factor::num)>::type;
+      typename std::common_type<typename From::rep, typename To::rep,
+                                decltype(Factor::num)>::type;
 
   // force conversion of From::rep -> IntermediateRep to be safe,
   // even if it will never happen be narrowing in this context.
-  IntermediateRep count = safe_float_conversion<IntermediateRep>(from.count(), ec);
+  IntermediateRep count =
+      safe_float_conversion<IntermediateRep>(from.count(), ec);
   if (ec) {
     return {};
   }
 
   // multiply with Factor::num without overflow or underflow
-  if
-    (Factor::num != 1)
-    {
-      constexpr auto max1 =
+  if (Factor::num != 1) {
+    constexpr auto max1 =
         std::numeric_limits<IntermediateRep>::max() / Factor::num;
-      if (count > max1) {
-        ec = 1;
-        return {};
-      }
-      constexpr auto min1 =
-        std::numeric_limits<IntermediateRep>::lowest() / Factor::num;
-      if (count < min1) {
-        ec = 1;
-        return {};
-      }
-      count *= Factor::num;
+    if (count > max1) {
+      ec = 1;
+      return {};
     }
+    constexpr auto min1 =
+        std::numeric_limits<IntermediateRep>::lowest() / Factor::num;
+    if (count < min1) {
+      ec = 1;
+      return {};
+    }
+    count *= Factor::num;
+  }
 
   // this can't go wrong, right? den>0 is checked earlier.
-  if
-    (Factor::den != 1) { count /= Factor::den; }
+  if (Factor::den != 1) {
+    count /= Factor::den;
+  }
 
   // convert to the to type, safely
   using ToRep = typename To::rep;
@@ -303,9 +279,9 @@ To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from, int& ec)
   if (ec) {
     return {};
   }
-  return To{ tocount };
+  return To{tocount};
 }
 
-} // namespace safe_duration_cast
+}  // namespace safe_duration_cast
 
 FMT_END_NAMESPACE
