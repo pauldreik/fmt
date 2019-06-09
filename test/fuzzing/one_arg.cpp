@@ -23,7 +23,7 @@ template <typename Item> void invoke_fmt(const uint8_t* Data, std::size_t Size) 
   Data += N;
   Size -= N;
 
-#define SEPARATE_ALLOCATION 1
+#define SEPARATE_ALLOCATION 0
 #if SEPARATE_ALLOCATION
   // allocates as tight as possible, making it easier to catch buffer overruns.
   std::vector<char> fmtstringbuffer(Size);
@@ -32,7 +32,13 @@ template <typename Item> void invoke_fmt(const uint8_t* Data, std::size_t Size) 
 #else
   auto fmtstring = fmt::string_view((const char*)Data, Size);
 #endif
+#define ALLOCATE_RESULT_IN_STRING 0
+#if ALLOCATE_RESULT_IN_STRING
   std::string message = fmt::format(fmtstring, item);
+#else
+  fmt::memory_buffer message;
+  fmt::format_to(message, fmtstring, item);
+#endif
 }
 
 void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
@@ -55,7 +61,12 @@ void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
 #endif
   auto* b = std::localtime(&item);
   if (b) {
+#if ALLOCATE_RESULT_IN_STRING
     std::string message = fmt::format(fmtstring, *b);
+#else
+      fmt::memory_buffer message;
+      fmt::format_to(message, fmtstring, *b);
+#endif
   }
 }
 
