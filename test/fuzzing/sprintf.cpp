@@ -5,7 +5,10 @@
 #include <cstdint>
 #include <stdexcept>
 
-constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
+
+// won't work on travis.
+//constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
+constexpr auto Nmax=16;
 
 template <class Item>
 Item assignFromBuf(const uint8_t* Data, std::size_t Size) {
