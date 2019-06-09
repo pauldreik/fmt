@@ -10,7 +10,7 @@
 #include <vector>
 
 template <typename Item1>
-void doit(const uint8_t* Data, std::size_t Size, int argsize) {
+void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
   const auto N1 = sizeof(Item1);
   if (Size <= N1) {
     return;
@@ -28,37 +28,33 @@ void doit(const uint8_t* Data, std::size_t Size, int argsize) {
   if (argsize <= 0 || argsize >= Size) {
     return;
   }
-  std::vector<char> argname(argsize + 1);
-  std::memcpy(argname.data(), Data, argsize);
+
+  //allocating buffers separately is slower, but increases chances
+  //of detecting memory errors
+#define SEPARATE_ALLOCATION 1
+#if SEPARATE_ALLOCATION
+  std::vector<char> argnamebuffer(argsize);
+  std::memcpy(argnamebuffer.data(), Data, argsize);
+  auto argname=fmt::string_view(argnamebuffer.data(),argsize);
+        #else
+   auto argname=fmt::string_view((const char*)Data,argsize);
+#endif
   Data += argsize;
   Size -= argsize;
 
+#if SEPARATE_ALLOCATION
   // allocates as tight as possible, making it easier to catch buffer overruns.
-  // also, make it null terminated.
-  std::vector<char> buf(Size + 1);
-  std::memcpy(buf.data(), Data, Size);
+  std::vector<char> fmtstringbuffer(Size);
+  std::memcpy(fmtstringbuffer.data(), Data, Size);
+  auto fmtstring=fmt::string_view(fmtstringbuffer.data(),Size);
+#else
+  auto fmtstring=fmt::string_view((const char*)Data,Size);
+#endif
   std::string message =
-      fmt::format(buf.data(), fmt::arg(argname.data(), item1));
+      fmt::format(fmtstring, fmt::arg(argname, item1));
+#undef SEPARATE_ALLOCATION
 }
 
-void doit_time(const uint8_t* Data, std::size_t Size) {
-  using Item = std::time_t;
-  const auto N = sizeof(Item);
-  if (Size <= N) {
-    return;
-  }
-  Item item{};
-  std::memcpy(&item, Data, N);
-  Data += N;
-  Size -= N;
-  // allocates as tight as possible, making it easier to catch buffer overruns
-  std::vector<char> buf(Data, Data + Size);
-  buf.resize(Size + 1, '\0');
-  auto* b = std::localtime(&item);
-  if (b) {
-    std::string message = fmt::format(buf.data(), *b);
-  }
-}
 
 // for dynamic dispatching to an explicit instantiation
 template <typename Callback> void invoke(int index, Callback callback) {
@@ -67,16 +63,35 @@ template <typename Callback> void invoke(int index, Callback callback) {
     callback(bool{});
     break;
   case 1:
-    callback(char{});
+    callback(char{});    
+    break;
+  case 11:
+      using sc=signed char;
+    callback(sc{});
+    break;
+  case 21:
+      using uc=unsigned char;
+    callback(uc{});
     break;
   case 2:
     callback(short{});
     break;
+  case 22:
+      using us=unsigned short;
+    callback(us{});
+    break;
   case 3:
     callback(int{});
     break;
+  case 13:
+    callback(unsigned{});
+    break;
   case 4:
     callback(long{});
+    break;
+  case 14:
+      using ul=unsigned long;
+    callback(ul{});
     break;
   case 5:
     callback(float{});
@@ -102,10 +117,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   Data++;
   Size--;
 
-  auto outer = [=](auto param1) { doit<decltype(param1)>(Data, Size, second); };
+  auto outerfcn = [=](auto param1) { invoke_fmt<decltype(param1)>(Data, Size, second); };
 
   try {
-    invoke(first, outer);
+    invoke(first, outerfcn);
   } catch (std::exception& e) {
   }
   return 0;
