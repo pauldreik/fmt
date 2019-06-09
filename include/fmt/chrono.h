@@ -17,7 +17,7 @@
 #include <sstream>
 
 #ifdef FMT_SAFE_DURATION_CAST
-#  include <safe_duration_cast/chronoconv.hpp>
+#  include "safe_duration_cast.h"
 #endif
 
 FMT_BEGIN_NAMESPACE
