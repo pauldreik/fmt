@@ -8,11 +8,15 @@
 #include <type_traits>
 #include <vector>
 
+constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
+
 template <typename Item1, typename Item2>
-void doit(const uint8_t* Data, std::size_t Size) {
+void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   const auto N1 = sizeof(Item1);
   const auto N2 = sizeof(Item2);
-  if (Size <= N1 + N2) {
+  static_assert(N1 <= Nmax, "size1 exceeded");
+  static_assert(N2 <= Nmax, "size2 exceeded");
+  if (Size <= Nmax + Nmax) {
     return;
   }
   Item1 item1{};
@@ -21,8 +25,8 @@ void doit(const uint8_t* Data, std::size_t Size) {
   } else {
     std::memcpy(&item1, Data, N1);
   }
-  Data += N1;
-  Size -= N1;
+  Data += Nmax;
+  Size -= Nmax;
 
   Item2 item2{};
   if /*constexpr*/ (std::is_same<Item2, bool>::value) {
@@ -30,34 +34,18 @@ void doit(const uint8_t* Data, std::size_t Size) {
   } else {
     std::memcpy(&item2, Data, N2);
   }
-  Data += N2;
-  Size -= N2;
+  Data += Nmax;
+  Size -= Nmax;
 
-  // allocates as tight as possible, making it easier to catch buffer overruns.
-  // also, make it null terminated.
-  std::vector<char> buf(Size + 1);
-  std::memcpy(buf.data(), Data, Size);
-  std::string message = fmt::format(buf.data(), item1, item2);
-}
+  auto fmtstring = fmt::string_view((const char*)Data, Size);
 
-void doit_time(const uint8_t* Data, std::size_t Size) {
-  using Item = std::time_t;
-  const auto N = sizeof(Item);
-  if (Size <= N) {
-    return;
-  }
-  Item item{};
-  std::memcpy(&item, Data, N);
-  Data += N;
-  Size -= N;
-  // allocates as tight as possible, making it easier to catch buffer overruns.
-  // also, make it null terminated.
-  std::vector<char> buf(Size + 1);
-  std::memcpy(buf.data(), Data, Size);
-  auto* b = std::localtime(&item);
-  if (b) {
-    std::string message = fmt::format(buf.data(), *b);
-  }
+#define ALLOCATE_RESULT_IN_STRING 0
+#if ALLOCATE_RESULT_IN_STRING
+  std::string message = fmt::format(fmtstring, item1, item2);
+#else
+  fmt::memory_buffer message;
+  fmt::format_to(message, fmtstring, item1, item2);
+#endif
 }
 
 // for dynamic dispatching to an explicit instantiation
@@ -70,21 +58,40 @@ template <typename Callback> void invoke(int index, Callback callback) {
     callback(char{});
     break;
   case 2:
-    callback(short{});
+    using sc = signed char;
+    callback(sc{});
     break;
   case 3:
-    callback(int{});
+    using uc = unsigned char;
+    callback(uc{});
     break;
   case 4:
-    callback(long{});
+    callback(short{});
     break;
   case 5:
-    callback(float{});
+    using us = unsigned short;
+    callback(us{});
     break;
   case 6:
-    callback(double{});
+    callback(int{});
     break;
   case 7:
+    callback(unsigned{});
+    break;
+  case 8:
+    callback(long{});
+    break;
+  case 9:
+    using ul = unsigned long;
+    callback(ul{});
+    break;
+  case 10:
+    callback(float{});
+    break;
+  case 11:
+    callback(double{});
+    break;
+  case 12:
     using LD = long double;
     callback(LD{});
     break;
@@ -104,7 +111,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
 
   auto outer = [=](auto param1) {
     auto inner = [=](auto param2) {
-      doit<decltype(param1), decltype(param2)>(Data, Size);
+      invoke_fmt<decltype(param1), decltype(param2)>(Data, Size);
     };
     invoke(second, inner);
   };
