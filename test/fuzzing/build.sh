@@ -13,7 +13,7 @@
 
 set -e
 me=$(basename $0)
-root=$(readlink -f "$(dirname "$0")/..")
+root=$(readlink -f "$(dirname "$0")/../..")
 
 
 echo $me: root=$root

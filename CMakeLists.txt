@@ -266,8 +266,9 @@ if (FMT_TEST)
   add_subdirectory(test)
 endif ()
 
+# control fuzzing independent of the unit tests
 if (FMT_FUZZ)
-  add_subdirectory(fuzzing)
+  add_subdirectory(test/fuzzing)
 endif ()
 
 set(gitignore ${PROJECT_SOURCE_DIR}/.gitignore)
