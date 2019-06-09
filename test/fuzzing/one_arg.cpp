@@ -9,7 +9,8 @@
 
 #include <fmt/chrono.h>
 
-template <typename Item> void invoke_fmt(const uint8_t* Data, std::size_t Size) {
+template <typename Item>
+void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   const auto N = sizeof(Item);
   if (Size <= N) {
     return;
@@ -64,8 +65,8 @@ void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
 #if ALLOCATE_RESULT_IN_STRING
     std::string message = fmt::format(fmtstring, *b);
 #else
-      fmt::memory_buffer message;
-      fmt::format_to(message, fmtstring, *b);
+    fmt::memory_buffer message;
+    fmt::format_to(message, fmtstring, *b);
 #endif
   }
 }
@@ -85,17 +86,17 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
       invoke_fmt<bool>(Data, Size);
       break;
     case 1:
-        invoke_fmt<char>(Data, Size);
-        break;
-      case 2:
-        invoke_fmt<unsigned char>(Data, Size);
-        break;
+      invoke_fmt<char>(Data, Size);
+      break;
+    case 2:
+      invoke_fmt<unsigned char>(Data, Size);
+      break;
     case 3:
       invoke_fmt<signed char>(Data, Size);
       break;
     case 4:
       invoke_fmt<short>(Data, Size);
-      break;      
+      break;
     case 5:
       invoke_fmt<unsigned short>(Data, Size);
       break;
