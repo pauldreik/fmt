@@ -5,7 +5,9 @@
 #include <stdexcept>
 #include <type_traits>
 
-constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
+// won't work on travis.
+//constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
+constexpr auto Nmax=16;
 
 template <typename Item1, typename Item2>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
