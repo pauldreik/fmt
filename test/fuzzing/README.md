@@ -12,7 +12,7 @@ if(spec.precision>100000) {
 This macro is the defacto standard for making fuzzing practically possible, see [the libFuzzer documentation](https://llvm.org/docs/LibFuzzer.html#fuzzer-friendly-build-mode).
 
 ## Running the fuzzers locally
-There is a (helper script)[./build.sh] to build the fuzzers, which has only been tested on Debian and Ubuntu linux. There should be no problems fuzzing on Windows (using a recent clang) or Mac, but the script will probably not work.
+There is a [helper script](build.sh) to build the fuzzers, which has only been tested on Debian and Ubuntu linux so far. There should be no problems fuzzing on Windows (using clang>=8) or on Mac, but the script will probably not work out of the box.
 
 Something along
 ```sh
