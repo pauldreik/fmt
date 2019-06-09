@@ -11,7 +11,7 @@
 
 template <typename Item>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
-  const auto N = sizeof(Item);
+  constexpr auto N = sizeof(Item);
   if (Size <= N) {
     return;
   }
@@ -44,7 +44,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
 
 void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
   using Item = std::time_t;
-  const auto N = sizeof(Item);
+  constexpr auto N = sizeof(Item);
   if (Size <= N) {
     return;
   }

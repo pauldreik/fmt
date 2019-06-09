@@ -9,8 +9,8 @@ constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
 
 template <typename Item1, typename Item2>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
-  const auto N1 = sizeof(Item1);
-  const auto N2 = sizeof(Item2);
+  constexpr auto N1 = sizeof(Item1);
+  constexpr auto N2 = sizeof(Item2);
   static_assert(N1 <= Nmax, "size1 exceeded");
   static_assert(N2 <= Nmax, "size2 exceeded");
   if (Size <= Nmax + Nmax) {

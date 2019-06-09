@@ -10,7 +10,7 @@
 
 template <typename Item1>
 void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
-  const auto N1 = sizeof(Item1);
+  constexpr auto N1 = sizeof(Item1);
   if (Size <= N1) {
     return;
   }
