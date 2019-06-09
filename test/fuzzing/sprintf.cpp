@@ -1,13 +1,9 @@
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
-#include <fmt/chrono.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <fmt/printf.h>
 #include <cstdint>
-#include <iostream>
 #include <stdexcept>
-#include <type_traits>
-#include <vector>
 
 constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
 
