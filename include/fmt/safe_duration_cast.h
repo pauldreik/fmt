@@ -92,6 +92,7 @@ FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
   return from;
 }  // function
 
+// clang-format off
 /**
  * converts From to To if possible, otherwise ec is set.
  *
@@ -99,10 +100,12 @@ FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
  * ---------------------------------|---------------
  * NaN                              | NaN
  * Inf                              | Inf
- * normal, fits in output           | converted (possibly with loss of
- * precision) normal, does not fit in output   | ec is set subnormal | best
- * effort -Inf                             | -Inf
+ * normal, fits in output           | converted (possibly lossy)
+ * normal, does not fit in output   | ec is set
+ * subnormal                        | best effort
+ * -Inf                             | -Inf
  */
+// clang-format on
 template <typename To, typename From,
           FMT_ENABLE_IF(!std::is_same<From, To>::value)>
 FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
