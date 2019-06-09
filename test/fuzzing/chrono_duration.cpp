@@ -13,9 +13,17 @@ template <typename Item, typename Ratio>
 void invoke_inner(fmt::string_view formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
   try {
-    //std::string message = fmt::format(formatstring, value);
+      // Don't switch these two dynamically,
+      // there is already a large combinatoric explosion
+      // of type and ratio, causing afl to suffer and the corpus
+      // getting enormous. Occasionally, flip this switch and
+      // try manually.
+#if 0
+    std::string message = fmt::format(formatstring, value);
+#else
     fmt::memory_buffer buf;
     fmt::format_to(buf, formatstring, value);
+#endif
   } catch (std::exception& e) {
   }
 }
