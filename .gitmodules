@@ -1,3 +1,0 @@
-[submodule "safe_duration_cast"]
-	path = safe_duration_cast
-	url = https://github.com/pauldreik/safe_duration_cast.git
