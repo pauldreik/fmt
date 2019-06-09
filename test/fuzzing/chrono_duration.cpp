@@ -10,7 +10,7 @@
 #include <fmt/chrono.h>
 
 template <typename Item, typename Ratio>
-void doit_impl(fmt::string_view formatstring, const Item item) {
+void invoke_inner(fmt::string_view formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
   try {
     //std::string message = fmt::format(formatstring, value);
@@ -22,7 +22,7 @@ void doit_impl(fmt::string_view formatstring, const Item item) {
 
 // Item is the underlying type for duration (int, long etc)
 template <typename Item>
-void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
+void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
     //always use a fixed location of the data, so different cases will
     //cooperate better. the same bit pattern, interpreted as another type,
     //is likely interesting.
@@ -48,49 +48,49 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
   // doit_impl<Item,std::zepto>(buf.data(),item);
   switch (scaling) {
   case 1:
-      doit_impl<Item, std::atto>(formatstring, item);
+      invoke_inner<Item, std::atto>(formatstring, item);
       break;
   case 2:
-      doit_impl<Item, std::femto>(formatstring, item);
+      invoke_inner<Item, std::femto>(formatstring, item);
       break;
   case 3:
-      doit_impl<Item, std::pico>(formatstring, item);
+      invoke_inner<Item, std::pico>(formatstring, item);
       break;
   case 4:
-      doit_impl<Item, std::nano>(formatstring, item);
+      invoke_inner<Item, std::nano>(formatstring, item);
       break;
   case 5:
-      doit_impl<Item, std::micro>(formatstring, item);
+      invoke_inner<Item, std::micro>(formatstring, item);
       break;
   case 6:
-      doit_impl<Item, std::milli>(formatstring, item);
+      invoke_inner<Item, std::milli>(formatstring, item);
       break;
   case 7:
-      doit_impl<Item, std::centi>(formatstring, item);
+      invoke_inner<Item, std::centi>(formatstring, item);
       break;
   case 8:
-      doit_impl<Item, std::deci>(formatstring, item);
+      invoke_inner<Item, std::deci>(formatstring, item);
       break;
   case 9:
-      doit_impl<Item, std::deca>(formatstring, item);
+      invoke_inner<Item, std::deca>(formatstring, item);
       break;
   case 10:
-      doit_impl<Item, std::kilo>(formatstring, item);
+      invoke_inner<Item, std::kilo>(formatstring, item);
       break;
   case 11:
-      doit_impl<Item, std::mega>(formatstring, item);
+      invoke_inner<Item, std::mega>(formatstring, item);
       break;
   case 12:
-      doit_impl<Item, std::giga>(formatstring, item);
+      invoke_inner<Item, std::giga>(formatstring, item);
      break;
   case 13:
-      doit_impl<Item, std::tera>(formatstring, item);
+      invoke_inner<Item, std::tera>(formatstring, item);
       break;
   case 14:
-      doit_impl<Item, std::peta>(formatstring, item);
+      invoke_inner<Item, std::peta>(formatstring, item);
       break;
   case 15:
-      doit_impl<Item, std::exa>(formatstring, item);
+      invoke_inner<Item, std::exa>(formatstring, item);
   }
   // doit_impl<Item,std::zeta>(buf.data(),item);
   // doit_impl<Item,std::yotta>(buf.data(),item);
@@ -101,49 +101,47 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
     return 0;
   }
 
-  const auto first = Data[0];
-  Data++;
-  Size--;
-  const auto second = Data[0];
-  Data++;
-  Size--;
+  const auto representation = Data[0];
+  const auto scaling = Data[1];
+  Data+=2;
+  Size-=2;
 
-  switch (first) {
+  switch (representation) {
   case 1:
-    doit<char>(Data, Size, second);
+    invoke_outer<char>(Data, Size, scaling);
     break;
   case 21:
-    doit<unsigned char>(Data, Size, second);
+    invoke_outer<unsigned char>(Data, Size, scaling);
     break;
   case 31:
-    doit<signed char>(Data, Size, second);
+    invoke_outer<signed char>(Data, Size, scaling);
     break;
   case 2:
-    doit<short>(Data, Size, second);
+    invoke_outer<short>(Data, Size, scaling);
     break;
   case 22:
-    doit<unsigned short>(Data, Size, second);
+    invoke_outer<unsigned short>(Data, Size, scaling);
     break;
   case 3:
-    doit<int>(Data, Size, second);
+    invoke_outer<int>(Data, Size, scaling);
     break;
   case 23:
-    doit<unsigned int>(Data, Size, second);
+    invoke_outer<unsigned int>(Data, Size, scaling);
     break;
   case 4:
-    doit<long>(Data, Size, second);
+    invoke_outer<long>(Data, Size, scaling);
     break;
   case 24:
-    doit<unsigned long>(Data, Size, second);
+    invoke_outer<unsigned long>(Data, Size, scaling);
     break;
   case 5:
-    doit<float>(Data, Size, second);
+    invoke_outer<float>(Data, Size, scaling);
     break;
   case 6:
-    doit<double>(Data, Size, second);
+    invoke_outer<double>(Data, Size, scaling);
     break;
   case 7:
-    doit<long double>(Data, Size, second);
+    invoke_outer<long double>(Data, Size, scaling);
     break;
   default:
     break;
