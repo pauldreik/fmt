@@ -16,15 +16,6 @@
 
 #include "format.h"
 
-// see
-// https://en.cppreference.com/w/User:D41D8CD98F/feature_testing_macros#C.2B.2B17
-
-#if __cpp_constexpr >= 201304
-#  define SDC_RELAXED_CONSTEXPR constexpr
-#else
-#  define SDC_RELAXED_CONSTEXPR
-#endif
-
 FMT_BEGIN_NAMESPACE
 
 namespace safe_duration_cast {
@@ -35,8 +26,7 @@ namespace safe_duration_cast {
  */
 template <typename To, typename From,
           FMT_ENABLE_IF(!std::is_same<From, To>::value)>
-SDC_RELAXED_CONSTEXPR To lossless_integral_conversion(const From from,
-                                                      int& ec) {
+FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
   ec = 0;
   using F = std::numeric_limits<From>;
   using T = std::numeric_limits<To>;
@@ -97,8 +87,7 @@ SDC_RELAXED_CONSTEXPR To lossless_integral_conversion(const From from,
 
 template <typename To, typename From,
           FMT_ENABLE_IF(std::is_same<From, To>::value)>
-SDC_RELAXED_CONSTEXPR To lossless_integral_conversion(const From from,
-                                                      int& ec) {
+FMT_CONSTEXPR To lossless_integral_conversion(const From from, int& ec) {
   ec = 0;
   return from;
 }  // function
@@ -116,7 +105,7 @@ SDC_RELAXED_CONSTEXPR To lossless_integral_conversion(const From from,
  */
 template <typename To, typename From,
           FMT_ENABLE_IF(!std::is_same<From, To>::value)>
-SDC_RELAXED_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
+FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
   ec = 0;
   using T = std::numeric_limits<To>;
   static_assert(std::is_floating_point<From>::value, "From must be floating");
@@ -138,7 +127,7 @@ SDC_RELAXED_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
 
 template <typename To, typename From,
           FMT_ENABLE_IF(std::is_same<From, To>::value)>
-SDC_RELAXED_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
+FMT_CONSTEXPR To safe_float_conversion(const From from, int& ec) {
   ec = 0;
   static_assert(std::is_floating_point<From>::value, "From must be floating");
   return from;
