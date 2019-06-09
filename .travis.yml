@@ -19,6 +19,18 @@ matrix:
       # Documentation
     - env: BUILD=Doc
       sudo: required
+      # make sure the fuzzers still build ok
+    - env: COMPILER=clang++-6.0 BUILD=Debug STANDARD=14 ENABLE_FUZZING=1
+      compiler: clang
+      addons:
+        apt:
+          update: true
+          packages:
+            - clang-6.0
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty
+            - llvm-toolchain-trusty-6.0
       # g++ 6 on Linux with C++14
     - env: COMPILER=g++-6 BUILD=Debug STANDARD=14
       compiler: gcc
