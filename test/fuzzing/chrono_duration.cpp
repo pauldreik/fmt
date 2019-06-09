@@ -27,7 +27,7 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
     //cooperate better. the same bit pattern, interpreted as another type,
     //is likely interesting.
     const auto Nfixed=std::max(sizeof(long double),sizeof(std::intmax_t));
-  const auto N = sizeof(Item);
+  constexpr auto N = sizeof(Item);
   static_assert(N<=Nfixed, "fixed size is too small");
   if (Size <= Nfixed + 1) {
     return;
