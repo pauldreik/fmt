@@ -28,11 +28,11 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
     //is likely interesting.
     const auto Nfixed=std::max(sizeof(long double),sizeof(std::intmax_t));
   const auto N = sizeof(Item);
-  static_assert(N<=Nfixed,"fixed size is too small");
+  static_assert(N<=Nfixed, "fixed size is too small");
   if (Size <= Nfixed + 1) {
     return;
   }
-  static_assert(std::is_trivially_copyable<Item>::value,"Item must be blittable");
+  static_assert(std::is_trivially_copyable<Item>::value, "Item must be blittable");
   Item item{};
   std::memcpy(&item, Data, N);
 
@@ -40,32 +40,9 @@ void doit(const uint8_t* Data, std::size_t Size, const int scaling) {
   Data += Nfixed;
   Size -= Nfixed;
 
-  // see https://github.com/fmtlib/fmt/issues/1178
-  const bool github_1178_is_solved = true;
-  if (!github_1178_is_solved) {
-    if (std::is_floating_point<Item>::value ||
-        std::numeric_limits<Item>::is_signed) {
-      if (item < 0) {
-        return;
-      }
-    }
-  }
-
   // Data is already allocated separately in libFuzzer so reading past
   // the end will most likely be detected anyway
-
-  // see https://github.com/fmtlib/fmt/issues/1194
-#define GITHUB_1194_IS_SOLVED 1
-#if GITHUB_1194_IS_SOLVED
   const auto formatstring=fmt::string_view((const char*)Data, Size);
-#else
-  // needs a null terminator, so allocate separately
-  std::vector<char> buf(Size+1);
-  std::memcpy(buf.data(), Data, Size);
-  const auto formatstring=fmt::string_view(buf.data(), Size);
-#endif
-
-
 
   // doit_impl<Item,std::yocto>(buf.data(),item);
   // doit_impl<Item,std::zepto>(buf.data(),item);
