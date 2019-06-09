@@ -63,41 +63,41 @@ template <typename Callback> void invoke(int index, Callback callback) {
   case 1:
     callback(char{});
     break;
-  case 11:
+  case 2:
     using sc = signed char;
     callback(sc{});
     break;
-  case 21:
+  case 3:
     using uc = unsigned char;
     callback(uc{});
     break;
-  case 2:
+  case 4:
     callback(short{});
     break;
-  case 22:
+  case 5:
     using us = unsigned short;
     callback(us{});
     break;
-  case 3:
+  case 6:
     callback(int{});
     break;
-  case 13:
+  case 7:
     callback(unsigned{});
     break;
-  case 4:
+  case 8:
     callback(long{});
     break;
-  case 14:
+  case 9:
     using ul = unsigned long;
     callback(ul{});
     break;
-  case 5:
+  case 10:
     callback(float{});
     break;
-  case 6:
+  case 11:
     callback(double{});
     break;
-  case 7:
+  case 12:
     using LD = long double;
     callback(LD{});
     break;
