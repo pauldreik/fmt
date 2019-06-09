@@ -34,7 +34,7 @@ void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
     //always use a fixed location of the data, so different cases will
     //cooperate better. the same bit pattern, interpreted as another type,
     //is likely interesting.
-    const auto Nfixed=std::max(sizeof(long double),sizeof(std::intmax_t));
+  constexpr auto Nfixed=std::max(sizeof(long double),sizeof(std::intmax_t));
   constexpr auto N = sizeof(Item);
   static_assert(N<=Nfixed, "fixed size is too small");
   if (Size <= Nfixed + 1) {
