@@ -43,8 +43,12 @@ void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
   if (Size <= Nfixed + 1) {
     return;
   }
+
+  // travis doesn't handle this
+#if 0
   static_assert(std::is_trivially_copyable<Item>::value,
                 "Item must be blittable");
+#endif
   Item item{};
   std::memcpy(&item, Data, N);
 
