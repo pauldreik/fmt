@@ -197,6 +197,8 @@ template <bool B, class T, class F>
 using conditional_t = typename std::conditional<B, T, F>::type;
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 
+struct monostate {};
+
 // An enable_if helper to be used in template parameters which results in much
 // shorter symbols: https://godbolt.org/z/sWw4vP. Extra parentheses are needed
 // to workaround a bug in MSVC 2019 (see #1140 and #1186).
@@ -211,17 +213,6 @@ template <typename Char>
 using std_string_view = std::experimental::basic_string_view<Char>;
 #else
 template <typename T> struct std_string_view {};
-#endif
-
-#if (__cplusplus >= 201703L ||                          \
-     (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)) && \
-    __cpp_lib_is_invocable >= 201703L
-template <typename F, typename... Args>
-using invoke_result_t = std::invoke_result_t<F, Args...>;
-#else
-// An implementation of invoke_result for pre-C++17.
-template <typename F, typename... Args>
-using invoke_result_t = typename std::result_of<F(Args...)>::type;
 #endif
 
 // Casts nonnegative integer to unsigned.
@@ -670,7 +661,7 @@ FMT_CONSTEXPR bool is_arithmetic(type t) {
 }
 
 template <typename Char> struct string_value {
-  const Char* value;
+  const Char* data;
   std::size_t size;
 };
 
@@ -690,6 +681,8 @@ template <typename Context> class value {
     unsigned uint_value;
     long long long_long_value;
     unsigned long long ulong_long_value;
+    bool bool_value;
+    char_type char_value;
     double double_value;
     long double long_double_value;
     const void* pointer;
@@ -704,11 +697,11 @@ template <typename Context> class value {
   value(unsigned long long val) : ulong_long_value(val) {}
   value(double val) : double_value(val) {}
   value(long double val) : long_double_value(val) {}
-  value(bool val) : int_value(val) {}
-  value(char_type val) : int_value(val) {}
-  value(const char_type* val) { string.value = val; }
+  value(bool val) : bool_value(val) {}
+  value(char_type val) : char_value(val) {}
+  value(const char_type* val) { string.data = val; }
   value(basic_string_view<char_type> val) {
-    string.value = val.data();
+    string.data = val.data();
     string.size = val.size();
   }
   value(const void* val) : pointer(val) {}
@@ -764,7 +757,7 @@ template <typename Context> struct arg_mapper {
   FMT_CONSTEXPR bool map(bool val) { return val; }
 
   template <typename T, FMT_ENABLE_IF(is_char<T>::value)>
-  FMT_CONSTEXPR char_type map(const T& val) {
+  FMT_CONSTEXPR char_type map(T val) {
     static_assert(
         std::is_same<T, char>::value || std::is_same<T, char_type>::value,
         "mixing character types is disallowed");
@@ -834,6 +827,12 @@ template <typename Context> struct arg_mapper {
   }
 };
 
+// A type constant after applying arg_mapper<Context>.
+template <typename T, typename Context>
+using mapped_type_constant =
+    type_constant<decltype(arg_mapper<Context>().map(std::declval<T>())),
+                  typename Context::char_type>;
+
 // Maximum number of arguments with packed types.
 enum { max_packed_args = 15 };
 enum : unsigned long long { is_unpacked_bit = 1ull << 63 };
@@ -853,8 +852,9 @@ template <typename Context> class basic_format_arg {
       const T& value);
 
   template <typename Visitor, typename Ctx>
-  friend FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit_format_arg(
-      Visitor&& vis, const basic_format_arg<Ctx>& arg);
+  friend FMT_CONSTEXPR auto visit_format_arg(Visitor&& vis,
+                                             const basic_format_arg<Ctx>& arg)
+      -> decltype(vis(0));
 
   friend class basic_format_args<Context>;
   friend class internal::arg_map<Context>;
@@ -886,8 +886,6 @@ template <typename Context> class basic_format_arg {
   bool is_arithmetic() const { return internal::is_arithmetic(type_); }
 };
 
-struct monostate {};
-
 /**
   \rst
   Visits an argument dispatching to the appropriate visit method based on
@@ -896,8 +894,9 @@ struct monostate {};
   \endrst
  */
 template <typename Visitor, typename Context>
-FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit_format_arg(
-    Visitor&& vis, const basic_format_arg<Context>& arg) {
+FMT_CONSTEXPR auto visit_format_arg(Visitor&& vis,
+                                    const basic_format_arg<Context>& arg)
+    -> decltype(vis(0)) {
   using char_type = typename Context::char_type;
   switch (arg.type_) {
   case internal::none_type:
@@ -914,17 +913,17 @@ FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit_format_arg(
   case internal::ulong_long_type:
     return vis(arg.value_.ulong_long_value);
   case internal::bool_type:
-    return vis(arg.value_.int_value != 0);
+    return vis(arg.value_.bool_value);
   case internal::char_type:
-    return vis(static_cast<char_type>(arg.value_.int_value));
+    return vis(arg.value_.char_value);
   case internal::double_type:
     return vis(arg.value_.double_value);
   case internal::long_double_type:
     return vis(arg.value_.long_double_value);
   case internal::cstring_type:
-    return vis(arg.value_.string.value);
+    return vis(arg.value_.string.data);
   case internal::string_type:
-    return vis(basic_string_view<char_type>(arg.value_.string.value,
+    return vis(basic_string_view<char_type>(arg.value_.string.data,
                                             arg.value_.string.size));
   case internal::pointer_type:
     return vis(arg.value_.pointer);
@@ -935,8 +934,9 @@ FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit_format_arg(
 }
 
 template <typename Visitor, typename Context>
-FMT_DEPRECATED FMT_CONSTEXPR internal::invoke_result_t<Visitor, int> visit(
-    Visitor&& vis, const basic_format_arg<Context>& arg) {
+FMT_DEPRECATED FMT_CONSTEXPR auto visit(Visitor&& vis,
+                                        const basic_format_arg<Context>& arg)
+    -> decltype(vis(0)) {
   return visit_format_arg(std::forward<Visitor>(vis), arg);
 }
 
@@ -959,7 +959,7 @@ template <typename Context> class arg_map {
 
   void push_back(value<Context> val) {
     const auto& named = *val.named_arg;
-    map_[size_] = entry{named.name, named.template deserialize<Context>()};
+    map_[size_] = {named.name, named.template deserialize<Context>()};
     ++size_;
   }
 
@@ -989,26 +989,18 @@ class locale_ref {
   template <typename Locale> Locale get() const;
 };
 
-template <typename Context, typename T> struct get_type {
-  static const type value = type_constant<
-      decltype(arg_mapper<Context>().map(
-          std::declval<typename std::remove_volatile<T>::type>())),
-      typename Context::char_type>::value;
-};
-
-template <typename Context> constexpr unsigned long long get_types() {
-  return 0;
-}
+template <typename> constexpr unsigned long long get_types() { return 0; }
 
 template <typename Context, typename Arg, typename... Args>
 constexpr unsigned long long get_types() {
-  return get_type<Context, Arg>::value | (get_types<Context, Args...>() << 4);
+  return mapped_type_constant<Arg, Context>::value |
+         (get_types<Context, Args...>() << 4);
 }
 
 template <typename Context, typename T>
 FMT_CONSTEXPR basic_format_arg<Context> make_arg(const T& value) {
   basic_format_arg<Context> arg;
-  arg.type_ = get_type<Context, T>::value;
+  arg.type_ = mapped_type_constant<T, Context>::value;
   arg.value_ = arg_mapper<Context>().map(value);
   return arg;
 }
