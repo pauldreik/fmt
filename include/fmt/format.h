@@ -37,6 +37,8 @@
 #include <memory>
 #include <stdexcept>
 
+#include "core.h"
+
 #ifdef __clang__
 #  define FMT_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
 #else
@@ -56,8 +58,6 @@
 #else
 #  define FMT_CUDA_VERSION 0
 #endif
-
-#include "core.h"
 
 #if FMT_GCC_VERSION >= 406 || FMT_CLANG_VERSION
 #  pragma GCC diagnostic push
@@ -243,13 +243,14 @@ namespace internal {
 #endif
 
 // A fallback implementation of uintptr_t for systems that lack it.
-namespace uintptr {
-struct uintptr_t {
+struct uintptr {
   unsigned char value[sizeof(void*)];
 };
-}  // namespace uintptr
-using uintptr::uintptr_t;
-typedef std::numeric_limits<uintptr_t> numutil;
+#ifdef UINTPTR_MAX
+using uintptr_t = ::uintptr_t;
+#else
+using uintptr_t = uintptr;
+#endif
 
 template <typename T> inline bool use_grisu() {
   return FMT_USE_GRISU && std::numeric_limits<double>::is_iec559 &&
@@ -303,25 +304,7 @@ typename Allocator::value_type* allocate(Allocator& alloc, std::size_t n) {
 #endif
 }
 }  // namespace internal
-FMT_END_NAMESPACE
 
-namespace std {
-using namespace fmt::v5::internal::uintptr;
-// Standard permits specialization of std::numeric_limits. This specialization
-// is used to detect presence of uintptr_t.
-template <>
-class numeric_limits<fmt::internal::uintptr_t>
-    : public std::numeric_limits<int> {
- public:
-  typedef uintptr_t uintptr_type;
-
-  static uintptr_type to_uint(const void* p) {
-    return fmt::internal::bit_cast<uintptr_type>(p);
-  }
-};
-}  // namespace std
-
-FMT_BEGIN_NAMESPACE
 template <typename Range> class basic_writer;
 
 template <typename OutputIt, typename T = typename OutputIt::value_type>
@@ -756,7 +739,7 @@ template <unsigned BITS, typename UInt> inline int count_digits(UInt n) {
   return num_digits;
 }
 
-template <> int count_digits<4>(internal::uintptr_t n);
+template <> int count_digits<4>(internal::uintptr n);
 
 template <typename Char>
 inline size_t count_code_points(basic_string_view<Char> s) {
@@ -985,7 +968,7 @@ inline Char* format_uint(Char* buffer, UInt value, int num_digits,
 }
 
 template <unsigned BASE_BITS, typename Char>
-Char* format_uint(Char* buffer, internal::uintptr_t n, int num_digits,
+Char* format_uint(Char* buffer, internal::uintptr n, int num_digits,
                   bool = false) {
   auto char_digits = std::numeric_limits<unsigned char>::digits / 4;
   int start = (num_digits + char_digits - 1) / char_digits - 1;
@@ -1422,7 +1405,7 @@ class arg_formatter_base {
   }
 
   void write_pointer(const void* p) {
-    writer_.write_pointer(internal::numutil::to_uint(p), specs_);
+    writer_.write_pointer(internal::bit_cast<internal::uintptr_t>(p), specs_);
   }
 
  protected:
@@ -1747,6 +1730,13 @@ FMT_CONSTEXPR void set_dynamic_spec(T& value, FormatArg arg, ErrorHandler eh) {
 }
 
 struct auto_id {};
+
+template <typename Context>
+FMT_CONSTEXPR typename Context::format_arg get_arg(Context& ctx, unsigned id) {
+  auto arg = ctx.arg(id);
+  if (!arg) ctx.on_error("argument index out of range");
+  return arg;
+}
 
 // The standard format specifier handler with checking.
 template <typename ParseContext, typename Context>
@@ -2274,10 +2264,7 @@ void handle_dynamic_spec(Spec& value, arg_ref<typename Context::char_type> ref,
 
 /** The default argument formatter. */
 template <typename Range>
-class arg_formatter
-    : public internal::function<
-          typename internal::arg_formatter_base<Range>::iterator>,
-      public internal::arg_formatter_base<Range> {
+class arg_formatter : public internal::arg_formatter_base<Range> {
  private:
   typedef typename Range::value_type char_type;
   typedef internal::arg_formatter_base<Range> base;
@@ -3464,7 +3451,7 @@ template <typename It> class is_output_iterator {
   template <typename U> static const char& test(...);
 
   typedef decltype(test<It>(typename it_category<It>::type{})) type;
-  typedef typename std::remove_reference<type>::type result;
+  typedef remove_reference_t<type> result;
 
  public:
   static const bool value = !std::is_const<result>::value;
@@ -3485,8 +3472,9 @@ struct format_args_t {
 };
 
 template <typename S, typename OutputIt, typename... Args,
-          FMT_ENABLE_IF(internal::is_output_iterator<OutputIt>::value &&
-                        !is_contiguous_back_insert_iterator<OutputIt>::value)>
+          FMT_ENABLE_IF(
+              internal::is_output_iterator<OutputIt>::value &&
+              !internal::is_contiguous_back_insert_iterator<OutputIt>::value)>
 inline OutputIt vformat_to(
     OutputIt out, const S& format_str,
     typename format_args_t<OutputIt, char_t<S>>::type args) {

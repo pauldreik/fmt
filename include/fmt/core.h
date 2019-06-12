@@ -196,6 +196,8 @@ using enable_if_t = typename std::enable_if<B, T>::type;
 template <bool B, class T, class F>
 using conditional_t = typename std::conditional<B, T, F>::type;
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
+template <typename T>
+using remove_reference_t = typename std::remove_reference<T>::type;
 
 struct monostate {};
 
@@ -714,7 +716,7 @@ template <typename Context> class value {
     custom.format = format_custom_arg<
         T, conditional_t<has_formatter<T, Context>::value,
                          typename Context::template formatter_type<T>,
-                         internal::fallback_formatter<T, char_type>>>;
+                         fallback_formatter<T, char_type>>>;
   }
 
   value(const named_arg_base<char_type>& val) { named_arg = &val; }
@@ -779,7 +781,7 @@ template <typename Context> struct arg_mapper {
   template <typename T,
             FMT_ENABLE_IF(
                 std::is_constructible<basic_string_view<char_type>, T>::value &&
-                !internal::is_string<T>::value)>
+                !is_string<T>::value)>
   FMT_CONSTEXPR basic_string_view<char_type> map(const T& val) {
     return basic_string_view<char_type>(val);
   }
@@ -989,12 +991,12 @@ class locale_ref {
   template <typename Locale> Locale get() const;
 };
 
-template <typename> constexpr unsigned long long get_types() { return 0; }
+template <typename> constexpr unsigned long long encode_types() { return 0; }
 
 template <typename Context, typename Arg, typename... Args>
-constexpr unsigned long long get_types() {
+constexpr unsigned long long encode_types() {
   return mapped_type_constant<Arg, Context>::value |
-         (get_types<Context, Args...>() << 4);
+         (encode_types<Context, Args...>() << 4);
 }
 
 template <typename Context, typename T>
@@ -1094,9 +1096,10 @@ template <typename Context, typename... Args> class format_arg_store {
   friend class basic_format_args<Context>;
 
  public:
-  static constexpr unsigned long long TYPES =
-      is_packed ? internal::get_types<Context, Args...>()
+  static constexpr unsigned long long types =
+      is_packed ? internal::encode_types<Context, Args...>()
                 : internal::is_unpacked_bit | num_args;
+  FMT_DEPRECATED static constexpr unsigned long long TYPES = types;
 
   format_arg_store(const Args&... args)
       : data_{internal::make_arg<is_packed, Context>(args)...} {}
@@ -1138,10 +1141,9 @@ template <typename Context> class basic_format_args {
 
   bool is_packed() const { return (types_ & internal::is_unpacked_bit) == 0; }
 
-  typename internal::type type(unsigned index) const {
+  internal::type type(unsigned index) const {
     unsigned shift = index * 4;
-    return static_cast<typename internal::type>((types_ & (0xfull << shift)) >>
-                                                shift);
+    return static_cast<internal::type>((types_ & (0xfull << shift)) >> shift);
   }
 
   friend class internal::arg_map<Context>;
@@ -1174,7 +1176,7 @@ template <typename Context> class basic_format_args {
    */
   template <typename... Args>
   basic_format_args(const format_arg_store<Context, Args...>& store)
-      : types_(static_cast<unsigned long long>(store.TYPES)) {
+      : types_(static_cast<unsigned long long>(store.types)) {
     set_data(store.data_);
   }
 
@@ -1207,22 +1209,30 @@ template <typename Context> class basic_format_args {
 // It is a separate type rather than an alias to make symbols readable.
 struct format_args : basic_format_args<format_context> {
   template <typename... Args>
-  format_args(Args&&... arg)
-      : basic_format_args<format_context>(std::forward<Args>(arg)...) {}
+  format_args(Args&&... args)
+      : basic_format_args<format_context>(std::forward<Args>(args)...) {}
 };
 struct wformat_args : basic_format_args<wformat_context> {
   template <typename... Args>
-  wformat_args(Args&&... arg)
-      : basic_format_args<wformat_context>(std::forward<Args>(arg)...) {}
+  wformat_args(Args&&... args)
+      : basic_format_args<wformat_context>(std::forward<Args>(args)...) {}
 };
 
+template <typename Container> struct is_contiguous : std::false_type {};
+
+template <typename Char>
+struct is_contiguous<std::basic_string<Char>> : std::true_type {};
+
+template <typename Char>
+struct is_contiguous<internal::buffer<Char>> : std::true_type {};
+
 namespace internal {
-template <typename Context>
-FMT_CONSTEXPR typename Context::format_arg get_arg(Context& ctx, unsigned id) {
-  auto arg = ctx.arg(id);
-  if (!arg) ctx.on_error("argument index out of range");
-  return arg;
-}
+
+template <typename OutputIt>
+struct is_contiguous_back_insert_iterator : std::false_type {};
+template <typename Container>
+struct is_contiguous_back_insert_iterator<std::back_insert_iterator<Container>>
+    : is_contiguous<Container> {};
 
 template <typename Char> struct named_arg_base {
   basic_string_view<Char> name;
@@ -1254,7 +1264,7 @@ void check_format_string(S);
 template <typename S, typename... Args, typename Char = char_t<S>>
 inline format_arg_store<buffer_context<Char>, Args...> make_args_checked(
     const S& format_str, const Args&... args) {
-  internal::check_format_string<Args...>(format_str);
+  check_format_string<Args...>(format_str);
   return {args...};
 }
 
@@ -1264,7 +1274,7 @@ std::basic_string<Char> vformat(basic_string_view<Char> format_str,
 
 template <typename Char>
 typename buffer_context<Char>::iterator vformat_to(
-    internal::buffer<Char>& buf, basic_string_view<Char> format_str,
+    buffer<Char>& buf, basic_string_view<Char> format_str,
     basic_format_args<buffer_context<Char>> args);
 }  // namespace internal
 
@@ -1293,30 +1303,15 @@ inline internal::named_arg<T, Char> arg(const S& name, const T& arg) {
 template <typename S, typename T, typename Char>
 void arg(S, internal::named_arg<T, Char>) = delete;
 
-template <typename Container> struct is_contiguous : std::false_type {};
-
-template <typename Char>
-struct is_contiguous<std::basic_string<Char>> : std::true_type {};
-
-template <typename Char>
-struct is_contiguous<internal::buffer<Char>> : std::true_type {};
-
-template <typename OutputIt>
-struct is_contiguous_back_insert_iterator : std::false_type {};
-
-template <typename Container>
-struct is_contiguous_back_insert_iterator<std::back_insert_iterator<Container>>
-    : is_contiguous<Container> {};
-
 /** Formats a string and writes the output to ``out``. */
 // GCC 8 and earlier cannot handle std::back_insert_iterator<Container> with
 // vformat_to<ArgFormatter>(...) overload, so SFINAE on iterator type instead.
 template <typename OutputIt, typename S, typename Char = char_t<S>,
-          FMT_ENABLE_IF(is_contiguous_back_insert_iterator<OutputIt>::value)>
+          FMT_ENABLE_IF(
+              internal::is_contiguous_back_insert_iterator<OutputIt>::value)>
 OutputIt vformat_to(OutputIt out, const S& format_str,
                     basic_format_args<buffer_context<Char>> args) {
-  using container = typename std::remove_reference<decltype(
-      internal::get_container(out))>::type;
+  using container = remove_reference_t<decltype(internal::get_container(out))>;
   internal::container_buffer<container> buf((internal::get_container(out)));
   internal::vformat_to(buf, to_string_view(format_str), args);
   return out;
