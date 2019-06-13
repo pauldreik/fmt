@@ -1506,6 +1506,8 @@ TEST(FormatterTest, FormatLongDouble) {
   safe_sprintf(buffer, "%Le", 392.65l);
   EXPECT_EQ(buffer, format("{0:e}", 392.65l));
   EXPECT_EQ("+0000392.6", format("{0:+010.4g}", 392.64l));
+  safe_sprintf(buffer, "%La", 3.31l);
+  EXPECT_EQ(buffer, format("{:a}", 3.31l));
 }
 
 TEST(FormatterTest, FormatChar) {
@@ -1576,9 +1578,7 @@ TEST(FormatterTest, FormatPointer) {
   EXPECT_EQ(format("{}", fmt::ptr(up.get())), format("{}", fmt::ptr(up)));
   std::shared_ptr<int> sp(new int(1));
   EXPECT_EQ(format("{}", fmt::ptr(sp.get())), format("{}", fmt::ptr(sp)));
-#if FMT_USE_NULLPTR
   EXPECT_EQ("0x0", format("{}", nullptr));
-#endif
 }
 
 TEST(FormatterTest, FormatString) {
@@ -2496,7 +2496,9 @@ TEST(FormatTest, CharTraitsIsNotAmbiguous) {
 struct mychar {
   int value;
   mychar() = default;
-  mychar(char val) : value(val) {}
+
+  template <typename T> mychar(T val) : value(static_cast<int>(val)) {}
+
   operator int() const { return value; }
 };
 

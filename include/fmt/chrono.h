@@ -635,7 +635,7 @@ struct chrono_formatter {
 
     if (ns == numeric_system::standard) return write(hour12(), 2);
     auto time = tm();
-    time.tm_hour = hour12();
+    time.tm_hour = to_int(hour12());
     format_localized(time, "%OI");
   }
 
@@ -646,7 +646,7 @@ struct chrono_formatter {
 
     if (ns == numeric_system::standard) return write(minute(), 2);
     auto time = tm();
-    time.tm_min = minute();
+    time.tm_min = to_int(minute());
     format_localized(time, "%OM");
   }
 
@@ -679,7 +679,7 @@ struct chrono_formatter {
       return;
     }
     auto time = tm();
-    time.tm_sec = second();
+    time.tm_sec = to_int(second());
     format_localized(time, "%OS");
   }
 
