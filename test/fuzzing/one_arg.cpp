@@ -19,12 +19,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   if (Size <= Nfixed) {
     return;
   }
-  Item item{};
-  if /*constexpr*/ (std::is_same<Item, bool>::value) {
-    item = !!Data[0];
-  } else {
-    std::memcpy(&item, Data, N);
-  }
+  const Item item = fmt_fuzzer::assignFromBuf<Item>(Data);
   Data += Nfixed;
   Size -= Nfixed;
 
@@ -52,8 +47,7 @@ void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
   if (Size <= Nfixed) {
     return;
   }
-  Item item{};
-  std::memcpy(&item, Data, N);
+  const Item item = fmt_fuzzer::assignFromBuf<Item>(Data);
   Data += Nfixed;
   Size -= Nfixed;
 #if FMT_FUZZ_SEPARATE_ALLOCATION
@@ -131,7 +125,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
     default:
       break;
     }
-  } catch (std::exception& e) {
+  } catch (std::exception& /*e*/) {
   }
   return 0;
 }

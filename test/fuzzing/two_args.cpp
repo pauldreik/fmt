@@ -18,25 +18,15 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   if (Size <= Nfixed + Nfixed) {
     return;
   }
-  Item1 item1{};
-  if /*constexpr*/ (std::is_same<Item1, bool>::value) {
-    item1 = !!Data[0];
-  } else {
-    std::memcpy(&item1, Data, N1);
-  }
+  const Item1 item1=fmt_fuzzer::assignFromBuf<Item1>(Data);
   Data += Nfixed;
   Size -= Nfixed;
 
-  Item2 item2{};
-  if /*constexpr*/ (std::is_same<Item2, bool>::value) {
-    item2 = !!Data[0];
-  } else {
-    std::memcpy(&item2, Data, N2);
-  }
+  const Item2 item2=fmt_fuzzer::assignFromBuf<Item2>(Data);
   Data += Nfixed;
   Size -= Nfixed;
 
-  auto fmtstring = fmt::string_view((const char*)Data, Size);
+  auto fmtstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 
 #if FMT_FUZZ_FORMAT_TO_STRING
   std::string message = fmt::format(fmtstring, item1, item2);
@@ -116,7 +106,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
 
   try {
     invoke(first, outer);
-  } catch (std::exception& e) {
+  } catch (std::exception& /*e*/) {
   }
   return 0;
 }

@@ -9,17 +9,6 @@
 
 using fmt_fuzzer::Nfixed;
 
-template <class Item>
-Item assignFromBuf(const uint8_t* Data, std::size_t Size) {
-  Item item{};
-  std::memcpy(&item, Data, sizeof(Item));
-  return item;
-}
-
-template <> bool assignFromBuf<bool>(const uint8_t* Data, std::size_t Size) {
-  return !!Data[0];
-}
-
 template <typename Item1, typename Item2>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   constexpr auto N1 = sizeof(Item1);
@@ -29,15 +18,15 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   if (Size <= Nfixed + Nfixed) {
     return;
   }
-  Item1 item1 = assignFromBuf<Item1>(Data, Size);
+  Item1 item1 = fmt_fuzzer::assignFromBuf<Item1>(Data);
   Data += Nfixed;
   Size -= Nfixed;
 
-  Item2 item2 = assignFromBuf<Item2>(Data, Size);
+  Item2 item2 = fmt_fuzzer::assignFromBuf<Item2>(Data);
   Data += Nfixed;
   Size -= Nfixed;
 
-  auto fmtstring = fmt::string_view((const char*)Data, Size);
+  auto fmtstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 
 #if FMT_FUZZ_FORMAT_TO_STRING
   std::string message = fmt::format(fmtstring, item1, item2);
@@ -121,7 +110,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
 
   try {
     invoke(first, outer);
-  } catch (std::exception& e) {
+  } catch (std::exception& /*e*/) {
   }
   return 0;
 }

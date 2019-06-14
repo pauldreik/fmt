@@ -1,5 +1,8 @@
 #ifndef FUZZER_COMMON_H
 #define FUZZER_COMMON_H
+
+#include <cstring> // memcpy
+
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
 
@@ -34,7 +37,33 @@ namespace fmt_fuzzer {
 }
 #endif
 
+namespace fmt_fuzzer {
+template <typename T>
+inline const char* as_chars(const T* data) {
+    return static_cast<const char*>(static_cast<const void*>(data));
+}
+template <typename T>
+inline const std::uint8_t* as_bytes(const T* data) {
+    return static_cast<const std::uint8_t*>(static_cast<const void*>(data));
+}
 
+
+template <class Item>
+inline Item assignFromBuf(const uint8_t* Data) {
+#if __cplusplus >= 201402L
+  static_assert(std::is_trivially_copyable<Item>::value,
+                "Item must be blittable");
+#endif
+  Item item{};
+  std::memcpy(&item, Data, sizeof(Item));
+  return item;
+}
+
+template <> inline bool assignFromBuf<bool>(const uint8_t* Data) {
+  return !!Data[0];
+}
+
+}
 
 
 #endif // FUZZER_COMMON_H

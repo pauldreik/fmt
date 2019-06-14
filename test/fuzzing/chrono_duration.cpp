@@ -20,7 +20,7 @@ void invoke_inner(fmt::string_view formatstring, const Item item) {
     fmt::memory_buffer buf;
     fmt::format_to(buf, formatstring, value);
 #endif
-  } catch (std::exception& e) {
+  } catch (std::exception& /*e*/) {
   }
 }
 
@@ -36,12 +36,7 @@ void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
     return;
   }
 
-#if __cplusplus >= 201402L
-  static_assert(std::is_trivially_copyable<Item>::value,
-                "Item must be blittable");
-#endif
-  Item item{};
-  std::memcpy(&item, Data, N);
+  const Item item = fmt_fuzzer::assignFromBuf<Item>(Data);
 
   // fast forward
   Data += Nfixed;
@@ -49,7 +44,7 @@ void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
 
   // Data is already allocated separately in libFuzzer so reading past
   // the end will most likely be detected anyway
-  const auto formatstring = fmt::string_view((const char*)Data, Size);
+  const auto formatstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 
   // doit_impl<Item,std::yocto>(buf.data(),item);
   // doit_impl<Item,std::zepto>(buf.data(),item);
