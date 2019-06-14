@@ -20,13 +20,13 @@ two_args.cpp
 )
 
 if(FMT_FUZZ_LINKMAIN)
-  add_definitions(-DIMPLEMENT_MAIN=1)
+  add_definitions(-DFMT_FUZZ_IMPLEMENT_MAIN=1)
 endif()
 
 macro(implement_fuzzer sourcefile)
   get_filename_component(basename ${sourcefile} NAME_WE)
   set(name fuzzer_${basename})
-  add_executable(${name} ${sourcefile} fuzzer_common.h)
+  add_executable(${name} ${sourcefile} fuzzer_common.h main.cpp)
   target_link_libraries(${name}  PRIVATE fmt)
 if(FMT_FUZZ_LDFLAGS)
   target_link_libraries(${name} PRIVATE ${FMT_FUZZ_LDFLAGS})

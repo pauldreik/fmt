@@ -34,4 +34,7 @@ namespace fmt_fuzzer {
 }
 #endif
 
+
+
+
 #endif // FUZZER_COMMON_H
