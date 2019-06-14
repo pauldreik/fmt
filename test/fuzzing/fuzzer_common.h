@@ -10,7 +10,7 @@
 // but one may be interested in formatting to a string instead to
 // verify it works as intended. to avoid a combinatoric explosion,
 // select this at compile time instead of dynamically from the fuzz data
-#define FMT_FUZZ_FORMAT_TO_STRING 1
+#define FMT_FUZZ_FORMAT_TO_STRING 0
 
 // if fmt is given a buffer that is separately allocated,
 // chances that address sanitizer detects out of bound reads is
