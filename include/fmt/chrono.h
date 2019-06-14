@@ -398,20 +398,6 @@ inline bool isfinite(T value) {
   return std::isfinite(value);
 }
 
-//paul - is this fcn unused?
-template <typename T> inline int to_int(T value) {
-  FMT_ASSERT(!isnan(value), "nan to int conversion is UB");
-  if (std::numeric_limits<T>::is_signed) {
-    // this covers both float and integers
-    FMT_ASSERT(value >= (std::numeric_limits<int>::min)(),
-               "value is too small to fit in an int");
-  }
-  FMT_ASSERT(value <= (std::numeric_limits<int>::max)(),
-             "value is too large to fit in an int");
-
-  return static_cast<int>(value);
-}
-
 // Convers value to int and checks that it's in the range [0, upper).
 template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline int to_nonnegative_int(T value, int upper) {
