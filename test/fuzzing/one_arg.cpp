@@ -29,7 +29,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   std::memcpy(fmtstringbuffer.data(), Data, Size);
   auto fmtstring = fmt::string_view(fmtstringbuffer.data(), Size);
 #else
-  auto fmtstring = fmt::string_view((const char*)Data, Size);
+  auto fmtstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 #endif
 
 #if FMT_FUZZ_FORMAT_TO_STRING
@@ -56,7 +56,7 @@ void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
   std::memcpy(fmtstringbuffer.data(), Data, Size);
   auto fmtstring = fmt::string_view(fmtstringbuffer.data(), Size);
 #else
-  auto fmtstring = fmt::string_view((const char*)Data, Size);
+  auto fmtstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 #endif
   auto* b = std::localtime(&item);
   if (b) {

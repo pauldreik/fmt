@@ -33,7 +33,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, unsigned int argsize) {
   std::memcpy(argnamebuffer.data(), Data, argsize);
   auto argname = fmt::string_view(argnamebuffer.data(), argsize);
 #else
-  auto argname = fmt::string_view((const char*)Data, argsize);
+  auto argname = fmt::string_view(fmt_fuzzer::as_chars(Data), argsize);
 #endif
   Data += argsize;
   Size -= argsize;
@@ -44,7 +44,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, unsigned int argsize) {
   std::memcpy(fmtstringbuffer.data(), Data, Size);
   auto fmtstring = fmt::string_view(fmtstringbuffer.data(), Size);
 #else
-  auto fmtstring = fmt::string_view((const char*)Data, Size);
+  auto fmtstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 #endif
   std::string message = fmt::format(fmtstring, fmt::arg(argname, item1));
 }
