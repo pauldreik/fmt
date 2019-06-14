@@ -1,7 +1,8 @@
 #ifndef FUZZER_COMMON_H
 #define FUZZER_COMMON_H
 
-#include <cstring> // memcpy
+#include <cstring>     // memcpy
+#include <type_traits> // trivially copyable
 
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
