@@ -24,8 +24,11 @@
 // The same bit pattern, interpreted as another type,
 // is likely interesting.
 // For this, we must know the size of the largest possible type in use.
-// There are some problems on old compilers, hence the C++ version check
-#if __cplusplus >= 201402L
+
+
+// There are some problems on travis, claiming Nfixed is not a constant expression
+// which seems to be an issue with older versions of libstdc++
+#if  _GLIBCXX_RELEASE >= 7
 # include <algorithm>
 # include <cstdint>
 namespace fmt_fuzzer {
