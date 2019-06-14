@@ -7,15 +7,15 @@
 
 #include "fuzzer_common.h"
 
-constexpr auto Nmax=fmt_fuzzer::Nfixed;
+constexpr auto Nfixed=fmt_fuzzer::Nfixed;
 
 template <typename Item1, typename Item2>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   constexpr auto N1 = sizeof(Item1);
   constexpr auto N2 = sizeof(Item2);
-  static_assert(N1 <= Nmax, "size1 exceeded");
-  static_assert(N2 <= Nmax, "size2 exceeded");
-  if (Size <= Nmax + Nmax) {
+  static_assert(N1 <= Nfixed, "size1 exceeded");
+  static_assert(N2 <= Nfixed, "size2 exceeded");
+  if (Size <= Nfixed + Nfixed) {
     return;
   }
   Item1 item1{};
@@ -24,8 +24,8 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   } else {
     std::memcpy(&item1, Data, N1);
   }
-  Data += Nmax;
-  Size -= Nmax;
+  Data += Nfixed;
+  Size -= Nfixed;
 
   Item2 item2{};
   if /*constexpr*/ (std::is_same<Item2, bool>::value) {
@@ -33,8 +33,8 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   } else {
     std::memcpy(&item2, Data, N2);
   }
-  Data += Nmax;
-  Size -= Nmax;
+  Data += Nfixed;
+  Size -= Nfixed;
 
   auto fmtstring = fmt::string_view((const char*)Data, Size);
 

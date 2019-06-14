@@ -12,7 +12,8 @@
 template <typename Item1>
 void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
   constexpr auto N1 = sizeof(Item1);
-  if (Size <= N1) {
+  static_assert (N1<=fmt_fuzzer::Nfixed,"Nfixed too small");
+  if (Size <= fmt_fuzzer::Nfixed) {
     return;
   }
   Item1 item1{};
@@ -21,8 +22,8 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
   } else {
     std::memcpy(&item1, Data, N1);
   }
-  Data += N1;
-  Size -= N1;
+  Data += fmt_fuzzer::Nfixed;
+  Size -= fmt_fuzzer::Nfixed;
 
   // how many chars should be used for the argument name?
   if (argsize <= 0 || argsize >= Size) {

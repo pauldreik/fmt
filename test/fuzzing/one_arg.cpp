@@ -10,10 +10,13 @@
 #include <fmt/chrono.h>
 #include "fuzzer_common.h"
 
+using fmt_fuzzer::Nfixed;
+
 template <typename Item>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   constexpr auto N = sizeof(Item);
-  if (Size <= N) {
+  static_assert (N<=Nfixed,"Nfixed is too small");
+  if (Size <= Nfixed) {
     return;
   }
   Item item{};
@@ -22,8 +25,8 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
   } else {
     std::memcpy(&item, Data, N);
   }
-  Data += N;
-  Size -= N;
+  Data += Nfixed;
+  Size -= Nfixed;
 
 #if FMT_FUZZ_SEPARATE_ALLOCATION
   // allocates as tight as possible, making it easier to catch buffer overruns.
@@ -45,13 +48,14 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
 void invoke_fmt_time(const uint8_t* Data, std::size_t Size) {
   using Item = std::time_t;
   constexpr auto N = sizeof(Item);
-  if (Size <= N) {
+  static_assert (N<=Nfixed,"Nfixed too small");
+  if (Size <= Nfixed) {
     return;
   }
   Item item{};
   std::memcpy(&item, Data, N);
-  Data += N;
-  Size -= N;
+  Data += Nfixed;
+  Size -= Nfixed;
 #if FMT_FUZZ_SEPARATE_ALLOCATION
   // allocates as tight as possible, making it easier to catch buffer overruns.
   std::vector<char> fmtstringbuffer(Size);
