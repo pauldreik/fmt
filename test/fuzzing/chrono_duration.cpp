@@ -8,17 +8,13 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include "fuzzer_common.h"
 
 template <typename Item, typename Ratio>
 void invoke_inner(fmt::string_view formatstring, const Item item) {
   const std::chrono::duration<Item, Ratio> value(item);
   try {
-    // Don't switch these two dynamically,
-    // there is already a large combinatoric explosion
-    // of type and ratio, causing afl to suffer and the corpus
-    // getting enormous. Occasionally, flip this switch and
-    // try manually.
-#if 0
+#if FMT_FUZZ_FORMAT_TO_STRING
     std::string message = fmt::format(formatstring, value);
 #else
     fmt::memory_buffer buf;
@@ -31,12 +27,8 @@ void invoke_inner(fmt::string_view formatstring, const Item item) {
 // Item is the underlying type for duration (int, long etc)
 template <typename Item>
 void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
-  // always use a fixed location of the data, so different cases will
-  // cooperate better. the same bit pattern, interpreted as another type,
-  // is likely interesting.
-  // won't work on travis.
-  //constexpr auto Nfixed = std::max(sizeof(long double), sizeof(std::intmax_t));
-  constexpr auto Nfixed=16;
+  // always use a fixed location of the data
+  using fmt_fuzzer::Nfixed;
 
   constexpr auto N = sizeof(Item);
   static_assert(N <= Nfixed, "fixed size is too small");
@@ -44,8 +36,7 @@ void invoke_outer(const uint8_t* Data, std::size_t Size, const int scaling) {
     return;
   }
 
-  // travis doesn't handle this
-#if 0
+#if __cplusplus >= 201402L
   static_assert(std::is_trivially_copyable<Item>::value,
                 "Item must be blittable");
 #endif

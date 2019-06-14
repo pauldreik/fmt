@@ -5,9 +5,9 @@
 #include <stdexcept>
 #include <type_traits>
 
-// won't work on travis.
-//constexpr auto Nmax = std::max(sizeof(long double), sizeof(std::intmax_t));
-constexpr auto Nmax=16;
+#include "fuzzer_common.h"
+
+constexpr auto Nmax=fmt_fuzzer::Nfixed;
 
 template <typename Item1, typename Item2>
 void invoke_fmt(const uint8_t* Data, std::size_t Size) {
@@ -38,8 +38,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size) {
 
   auto fmtstring = fmt::string_view((const char*)Data, Size);
 
-#define ALLOCATE_RESULT_IN_STRING 0
-#if ALLOCATE_RESULT_IN_STRING
+#if FMT_FUZZ_FORMAT_TO_STRING
   std::string message = fmt::format(fmtstring, item1, item2);
 #else
   fmt::memory_buffer message;

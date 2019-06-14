@@ -12,7 +12,7 @@ set(FMT_FUZZ_LDFLAGS "" CACHE STRING "LDFLAGS for the fuzz targets")
 
 #find all fuzzers.
 set(SOURCES
-chrono_duration.cpp # this triggers integer overflows I yet not know how to fix
+chrono_duration.cpp
 named_arg.cpp
 one_arg.cpp
 sprintf.cpp
@@ -26,7 +26,7 @@ endif()
 macro(implement_fuzzer sourcefile)
   get_filename_component(basename ${sourcefile} NAME_WE)
   set(name fuzzer_${basename})
-  add_executable(${name} ${sourcefile})
+  add_executable(${name} ${sourcefile} fuzzer_common.h)
   target_link_libraries(${name}  PRIVATE fmt)
 if(FMT_FUZZ_LDFLAGS)
   target_link_libraries(${name} PRIVATE ${FMT_FUZZ_LDFLAGS})

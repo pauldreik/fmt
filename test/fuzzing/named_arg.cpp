@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include "fuzzer_common.h"
 
 template <typename Item1>
 void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
@@ -30,8 +31,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
 
   // allocating buffers separately is slower, but increases chances
   // of detecting memory errors
-#define SEPARATE_ALLOCATION 1
-#if SEPARATE_ALLOCATION
+#if FMT_FUZZ_SEPARATE_ALLOCATION
   std::vector<char> argnamebuffer(argsize);
   std::memcpy(argnamebuffer.data(), Data, argsize);
   auto argname = fmt::string_view(argnamebuffer.data(), argsize);
@@ -41,7 +41,7 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
   Data += argsize;
   Size -= argsize;
 
-#if SEPARATE_ALLOCATION
+#if FMT_FUZZ_SEPARATE_ALLOCATION
   // allocates as tight as possible, making it easier to catch buffer overruns.
   std::vector<char> fmtstringbuffer(Size);
   std::memcpy(fmtstringbuffer.data(), Data, Size);
@@ -50,7 +50,6 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, int argsize) {
   auto fmtstring = fmt::string_view((const char*)Data, Size);
 #endif
   std::string message = fmt::format(fmtstring, fmt::arg(argname, item1));
-#undef SEPARATE_ALLOCATION
 }
 
 // for dynamic dispatching to an explicit instantiation
