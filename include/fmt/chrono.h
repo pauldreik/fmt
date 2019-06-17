@@ -666,14 +666,10 @@ struct chrono_formatter {
     if (ns == numeric_system::standard) {
       write(second(), 2);
 #if FMT_SAFE_DURATION_CAST
-      int ec;
       // convert rep->Rep
       using Crep = std::chrono::duration<rep, Period>;
       using CRep = std::chrono::duration<Rep, Period>;
-      auto tmpval = safe_duration_cast::safe_duration_cast<CRep>(Crep{val}, ec);
-      if (ec) {
-        FMT_THROW(format_error("value would cause UB or the wrong result"));
-      }
+      auto tmpval = fmt_safe_duration_cast<CRep>(Crep{val});
 #else
       auto tmpval = std::chrono::duration<Rep, Period>(val);
 #endif
