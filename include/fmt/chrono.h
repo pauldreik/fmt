@@ -437,6 +437,19 @@ template <typename T> struct make_unsigned_or_unchanged<T, true> {
   using type = typename std::make_unsigned<T>::type;
 };
 
+#if FMT_SAFE_DURATION_CAST
+// throwing version of safe_duration_cast
+template <typename To, typename FromRep, typename FromPeriod>
+To fmt_safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from) {
+    int ec;
+    To to= safe_duration_cast::safe_duration_cast<To>(from,ec);
+    if (ec) {
+      FMT_THROW(format_error("cannot format duration"));
+    }
+    return to;
+}
+#endif
+
 template <typename Rep, typename Period,
           FMT_ENABLE_IF(std::is_integral<Rep>::value)>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
@@ -446,27 +459,14 @@ inline std::chrono::duration<Rep, std::milli> get_milliseconds(
 #if FMT_SAFE_DURATION_CAST
   using CommonSecondsType =
       typename std::common_type<decltype(d), std::chrono::seconds>::type;
-  int ec;
-  const auto d_as_common =
-      safe_duration_cast::safe_duration_cast<CommonSecondsType>(d, ec);
-  if (ec) {
-    FMT_THROW(format_error("value would cause UB or the wrong result"));
-  }
+  const auto d_as_common = fmt_safe_duration_cast<CommonSecondsType>(d);
   const auto d_as_whole_seconds =
-      safe_duration_cast::safe_duration_cast<std::chrono::seconds>(d_as_common,
-                                                                   ec);
-  if (ec) {
-    FMT_THROW(format_error("value would cause UB or the wrong result"));
-  }
+          fmt_safe_duration_cast<std::chrono::seconds>(d_as_common);
   // this conversion should be nonproblematic
   const auto diff = d_as_common - d_as_whole_seconds;
-  const auto ms = safe_duration_cast::safe_duration_cast<
-      std::chrono::duration<Rep, std::milli>>(diff, ec);
-  if (ec) {
-    FMT_THROW(format_error("value would cause UB or the wrong result"));
-  }
+  const auto ms =
+          fmt_safe_duration_cast<std::chrono::duration<Rep, std::milli>>(diff);
   return ms;
-
 #else
   auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
   return std::chrono::duration_cast<std::chrono::milliseconds>(d - s);
