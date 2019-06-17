@@ -2,7 +2,6 @@
 // License: see LICENSE.rst in the fmt root directory
 
 #include <fmt/chrono.h>
-#include <fmt/core.h>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -112,37 +111,37 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size) {
   case 1:
     invoke_outer<char>(Data, Size, scaling);
     break;
-  case 21:
+  case 2:
     invoke_outer<unsigned char>(Data, Size, scaling);
     break;
-  case 31:
+  case 3:
     invoke_outer<signed char>(Data, Size, scaling);
     break;
-  case 2:
+  case 4:
     invoke_outer<short>(Data, Size, scaling);
     break;
-  case 22:
+  case 5:
     invoke_outer<unsigned short>(Data, Size, scaling);
     break;
-  case 3:
+  case 6:
     invoke_outer<int>(Data, Size, scaling);
     break;
-  case 23:
+  case 7:
     invoke_outer<unsigned int>(Data, Size, scaling);
     break;
-  case 4:
+  case 8:
     invoke_outer<long>(Data, Size, scaling);
     break;
-  case 24:
+  case 9:
     invoke_outer<unsigned long>(Data, Size, scaling);
     break;
-  case 5:
+  case 10:
     invoke_outer<float>(Data, Size, scaling);
     break;
-  case 6:
+  case 11:
     invoke_outer<double>(Data, Size, scaling);
     break;
-  case 7:
+  case 12:
     invoke_outer<long double>(Data, Size, scaling);
     break;
   default:
