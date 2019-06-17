@@ -444,7 +444,6 @@ inline std::chrono::duration<Rep, std::milli> get_milliseconds(
   // this may overflow and/or the result may not fit in the
   // target type.
 #if FMT_SAFE_DURATION_CAST
-  // if(std::ratio_less<Period,std::ratio<1>>::value) {
   using CommonSecondsType =
       typename std::common_type<decltype(d), std::chrono::seconds>::type;
   int ec;
