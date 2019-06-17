@@ -660,8 +660,6 @@ struct chrono_formatter {
 
   void on_second(numeric_system ns) {
     if (handle_nan_inf()) {
-      *out++ = '.';
-      handle_nan_inf();
       return;
     }
 
