@@ -667,9 +667,9 @@ struct chrono_formatter {
       write(second(), 2);
 #if FMT_SAFE_DURATION_CAST
       // convert rep->Rep
-      using Crep = std::chrono::duration<rep, Period>;
-      using CRep = std::chrono::duration<Rep, Period>;
-      auto tmpval = fmt_safe_duration_cast<CRep>(Crep{val});
+      using duration_rep = std::chrono::duration<rep, Period>;
+      using duration_Rep = std::chrono::duration<Rep, Period>;
+      auto tmpval = fmt_safe_duration_cast<duration_Rep>(duration_rep{val});
 #else
       auto tmpval = std::chrono::duration<Rep, Period>(val);
 #endif
