@@ -63,8 +63,7 @@ inline fmt::internal::null<> strerror_s(char*, std::size_t, ...) {
 }
 
 FMT_BEGIN_NAMESPACE
-
-namespace {
+namespace internal {
 
 #ifndef _MSC_VER
 #  define FMT_SNPRINTF snprintf
@@ -78,12 +77,6 @@ inline int fmt_snprintf(char* buffer, size_t size, const char* format, ...) {
 }
 #  define FMT_SNPRINTF fmt_snprintf
 #endif  // _MSC_VER
-
-#if defined(_WIN32) && defined(__MINGW32__) && !defined(__NO_ISOCEXT)
-#  define FMT_SWPRINTF snwprintf
-#else
-#  define FMT_SWPRINTF swprintf
-#endif  // defined(_WIN32) && defined(__MINGW32__) && !defined(__NO_ISOCEXT)
 
 typedef void (*FormatFunc)(internal::buffer<char>&, int, string_view);
 
@@ -198,7 +191,7 @@ void report_error(FormatFunc func, int error_code,
   fwrite_fully(full_message.data(), 1, full_message.size(), stderr);
   std::fputc('\n', stderr);
 }
-}  // namespace
+}  // namespace internal
 
 #if !defined(FMT_STATIC_THOUSANDS_SEPARATOR)
 namespace internal {
@@ -236,7 +229,7 @@ FMT_FUNC void system_error::init(int err_code, string_view format_str,
 
 namespace internal {
 
-template <> FMT_FUNC int count_digits<4>(internal::uintptr n) {
+template <> FMT_FUNC int count_digits<4>(internal::fallback_uintptr n) {
   // Assume little endian; pointer formatting is implementation-defined anyway.
   int i = static_cast<int>(sizeof(void*)) - 1;
   while (i > 0 && n.value[i] == 0) --i;
@@ -247,8 +240,10 @@ template <> FMT_FUNC int count_digits<4>(internal::uintptr n) {
 template <typename T>
 int format_float(char* buf, std::size_t size, const char* format, int precision,
                  T value) {
-  return precision < 0 ? FMT_SNPRINTF(buf, size, format, value)
-                       : FMT_SNPRINTF(buf, size, format, precision, value);
+  // Suppress the warning about nonliteral format string.
+  auto snprintf_ptr = FMT_SNPRINTF;
+  return precision < 0 ? snprintf_ptr(buf, size, format, value)
+                       : snprintf_ptr(buf, size, format, precision, value);
 }
 
 template <typename T>
@@ -925,7 +920,8 @@ FMT_FUNC void format_system_error(internal::buffer<char>& out, int error_code,
     buf.resize(inline_buffer_size);
     for (;;) {
       char* system_message = &buf[0];
-      int result = safe_strerror(error_code, system_message, buf.size());
+      int result =
+          internal::safe_strerror(error_code, system_message, buf.size());
       if (result == 0) {
         writer w(out);
         w.write(message);
@@ -962,13 +958,13 @@ FMT_FUNC void vprint(std::FILE* f, string_view format_str, format_args args) {
   memory_buffer buffer;
   internal::vformat_to(buffer, format_str,
                        basic_format_args<buffer_context<char>>(args));
-  fwrite_fully(buffer.data(), 1, buffer.size(), f);
+  internal::fwrite_fully(buffer.data(), 1, buffer.size(), f);
 }
 
 FMT_FUNC void vprint(std::FILE* f, wstring_view format_str, wformat_args args) {
   wmemory_buffer buffer;
   internal::vformat_to(buffer, format_str, args);
-  fwrite_fully(buffer.data(), sizeof(wchar_t), buffer.size(), f);
+  internal::fwrite_fully(buffer.data(), sizeof(wchar_t), buffer.size(), f);
 }
 
 FMT_FUNC void vprint(string_view format_str, format_args args) {
