@@ -16,7 +16,12 @@
 #include <locale>
 #include <sstream>
 
-#ifdef FMT_SAFE_DURATION_CAST
+// enable safe chrono durations, unless explicitly disabled
+#ifndef FMT_SAFE_DURATION_CAST
+#   define FMT_SAFE_DURATION_CAST 1
+#endif
+
+#if FMT_SAFE_DURATION_CAST
 #  include "safe-duration-cast.h"
 #endif
 
@@ -438,7 +443,7 @@ inline std::chrono::duration<Rep, std::milli> get_milliseconds(
     std::chrono::duration<Rep, Period> d) {
   // this may overflow and/or the result may not fit in the
   // target type.
-#ifdef FMT_SAFE_DURATION_CAST
+#if FMT_SAFE_DURATION_CAST
   // if(std::ratio_less<Period,std::ratio<1>>::value) {
   using CommonSecondsType =
       typename std::common_type<decltype(d), std::chrono::seconds>::type;
@@ -519,7 +524,7 @@ struct chrono_formatter {
 
     // this may overflow and/or the result may not fit in the
     // target type.
-#ifdef FMT_SAFE_DURATION_CAST
+#if FMT_SAFE_DURATION_CAST
     int ec;
     // might need checked conversion (rep!=Rep)
     auto tmpval = std::chrono::duration<rep, Period>(val);
@@ -663,7 +668,7 @@ struct chrono_formatter {
 
     if (ns == numeric_system::standard) {
       write(second(), 2);
-#ifdef FMT_SAFE_DURATION_CAST
+#if FMT_SAFE_DURATION_CAST
       int ec;
       // convert rep->Rep
       using Crep = std::chrono::duration<rep, Period>;

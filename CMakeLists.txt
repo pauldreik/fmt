@@ -36,7 +36,6 @@ endif ()
 option(FMT_PEDANTIC "Enable extra warnings and expensive tests." OFF)
 option(FMT_WERROR "Halt the compilation with an error on compiler warnings."
        OFF)
-option(FMT_SAFE_DURATION_CAST "verify chrono duration casts" OFF)
 
 # Options that control generation of various targets.
 option(FMT_DOC "Generate the doc target." ${MASTER_PROJECT})
