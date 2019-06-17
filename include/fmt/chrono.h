@@ -524,13 +524,9 @@ struct chrono_formatter {
     // this may overflow and/or the result may not fit in the
     // target type.
 #if FMT_SAFE_DURATION_CAST
-    int ec;
     // might need checked conversion (rep!=Rep)
     auto tmpval = std::chrono::duration<rep, Period>(val);
-    s = safe_duration_cast::safe_duration_cast<seconds>(tmpval, ec);
-    if (ec) {
-      FMT_THROW(format_error("value would cause UB or the wrong result"));
-    }
+    s = fmt_safe_duration_cast<seconds>(tmpval);
 #else
     s = std::chrono::duration_cast<seconds>(
         std::chrono::duration<rep, Period>(val));
