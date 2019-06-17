@@ -1,10 +1,9 @@
-// if an int main() is needed.
-#if FMT_FUZZ_IMPLEMENT_MAIN
-#  include <cassert>
-#  include <fstream>
-#  include <sstream>
-#  include <vector>
+#include <cassert>
+#include <fstream>
+#include <sstream>
+#include <vector>
 #include "fuzzer_common.h"
+
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, std::size_t Size);
 int main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
@@ -20,4 +19,3 @@ int main(int argc, char* argv[]) {
     LLVMFuzzerTestOneInput(fmt_fuzzer::as_bytes(buf.data()), buf.size());
   }
 }
-#endif

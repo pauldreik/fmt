@@ -19,15 +19,14 @@ sprintf.cpp
 two_args.cpp
 )
 
-if(FMT_FUZZ_LINKMAIN)
-  add_definitions(-DFMT_FUZZ_IMPLEMENT_MAIN=1)
-endif()
-
 macro(implement_fuzzer sourcefile)
   get_filename_component(basename ${sourcefile} NAME_WE)
   set(name fuzzer_${basename})
-  add_executable(${name} ${sourcefile} fuzzer_common.h main.cpp)
-  target_link_libraries(${name}  PRIVATE fmt)
+  add_executable(${name} ${sourcefile} fuzzer_common.h)
+  if(FMT_FUZZ_LINKMAIN)
+      target_sources(${name} PRIVATE main.cpp)
+  endif()
+  target_link_libraries(${name} PRIVATE fmt)
 if(FMT_FUZZ_LDFLAGS)
   target_link_libraries(${name} PRIVATE ${FMT_FUZZ_LDFLAGS})
 endif()
