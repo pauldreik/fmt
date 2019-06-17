@@ -1,7 +1,7 @@
 /*
  * For conversion between std::chrono::durations without undefined
  * behaviour or erroneous results.
- * This is a stripped down version of duration_cast, for inclusion in libfmt.
+ * This is a stripped down version of duration_cast, for inclusion in fmt.
  * See https://github.com/pauldreik/safe_duration_cast
  *
  * Copyright Paul Dreik 2019
