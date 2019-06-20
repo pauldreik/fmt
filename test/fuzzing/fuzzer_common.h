@@ -1,11 +1,12 @@
 #ifndef FUZZER_COMMON_H
 #define FUZZER_COMMON_H
 
-#include <cstring>     // memcpy
-#include <type_traits> // trivially copyable
-
 // Copyright (c) 2019, Paul Dreik
 // License: see LICENSE.rst in the fmt root directory
+
+#include <cstring>     // memcpy
+#include <type_traits> // trivially copyable
+#include <cstdint>     // std::uint8_t
 
 // one can format to either a string, or a buf. buf is faster,
 // but one may be interested in formatting to a string instead to
@@ -18,20 +19,16 @@
 // much higher. However, it slows down the fuzzing.
 #define FMT_FUZZ_SEPARATE_ALLOCATION 1
 
-
-
 // To let the the fuzzer mutation be efficient at cross pollinating
 // between different types, use a fixed size format.
 // The same bit pattern, interpreted as another type,
 // is likely interesting.
 // For this, we must know the size of the largest possible type in use.
 
-
 // There are some problems on travis, claiming Nfixed is not a constant expression
 // which seems to be an issue with older versions of libstdc++
 #if  _GLIBCXX_RELEASE >= 7
 # include <algorithm>
-# include <cstdint>
 namespace fmt_fuzzer {
   constexpr auto Nfixed = std::max(sizeof(long double), sizeof(std::intmax_t));
 }
@@ -42,28 +39,33 @@ namespace fmt_fuzzer {
 #endif
 
 namespace fmt_fuzzer {
+// view data as a c char pointer.
 template <typename T>
 inline const char* as_chars(const T* data) {
     return static_cast<const char*>(static_cast<const void*>(data));
 }
+
+// view data as a byte pointer
 template <typename T>
 inline const std::uint8_t* as_bytes(const T* data) {
     return static_cast<const std::uint8_t*>(static_cast<const void*>(data));
 }
 
-
+// blits bytes from Data to form an (assumed trivially constructible) object
+// of type Item
 template <class Item>
-inline Item assignFromBuf(const uint8_t* Data) {
+inline Item assignFromBuf(const std::uint8_t* Data) {
   Item item{};
   std::memcpy(&item, Data, sizeof(Item));
   return item;
 }
 
-template <> inline bool assignFromBuf<bool>(const uint8_t* Data) {
+// reads a boolean value by looking at the first byte from Data
+template <> inline bool assignFromBuf<bool>(const std::uint8_t* Data) {
   return !!Data[0];
 }
 
-}
+} // namespace fmt_fuzzer
 
 
 #endif // FUZZER_COMMON_H
