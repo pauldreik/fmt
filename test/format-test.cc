@@ -99,7 +99,7 @@ void std_format(long double value, std::wstring& result) {
 template <typename Char, typename T>
 ::testing::AssertionResult check_write(const T& value, const char* type) {
   fmt::basic_memory_buffer<Char> buffer;
-  typedef fmt::back_insert_range<fmt::internal::buffer<Char>> range;
+  using range = fmt::internal::buffer_range<Char>;
   fmt::basic_writer<range> writer(buffer);
   writer.write(value);
   std::basic_string<Char> actual = to_string(buffer);
@@ -1590,9 +1590,20 @@ TEST(FormatterTest, FormatStringView) {
   EXPECT_EQ("", format("{}", string_view()));
 }
 
-#ifdef FMT_USE_STD_STRING_VIEW
+#ifdef FMT_USE_STRING_VIEW
+struct string_viewable {};
+
+FMT_BEGIN_NAMESPACE
+template <> struct formatter<string_viewable> : formatter<std::string_view> {
+  auto format(string_viewable, format_context& ctx) -> decltype(ctx.out()) {
+    return formatter<std::string_view>::format("foo", ctx);
+  }
+};
+FMT_END_NAMESPACE
+
 TEST(FormatterTest, FormatStdStringView) {
-  EXPECT_EQ("test", format("{0}", std::string_view("test")));
+  EXPECT_EQ("test", format("{}", std::string_view("test")));
+  EXPECT_EQ("foo", format("{}", string_viewable()));
 }
 #endif
 
@@ -1894,7 +1905,7 @@ enum TestFixedEnum : short { B };
 TEST(FormatTest, FixedEnum) { EXPECT_EQ("0", fmt::format("{}", B)); }
 #endif
 
-typedef fmt::back_insert_range<fmt::internal::buffer<char>> buffer_range;
+using buffer_range = fmt::internal::buffer_range<char>;
 
 class mock_arg_formatter
     : public fmt::internal::arg_formatter_base<buffer_range> {

@@ -284,7 +284,7 @@ namespace std {
         (std::is_same_v<T, char> && std::is_same_v<char_type, wchar_t>) ||
         detail::is_standard_integer_v<T> ||
         detail::is_standard_unsigned_integer_v<T> ||
-        is_default_constructible_v<typename Context::template formatter_type<T>>
+        sizeof(typename Context::template formatter_type<T>().format(declval<const T&>(), declval<Context&>())) != 0
     >> explicit basic_format_arg(const T& v) noexcept; // exposition only
     explicit basic_format_arg(float n) noexcept;                         // exposition only
     explicit basic_format_arg(double n) noexcept;                        // exposition only
@@ -344,7 +344,7 @@ template<class T, typename> /* explicit */ basic_format_arg<Context>::basic_form
     value = static_cast<long long int>(v);
   else if constexpr (detail::is_standard_unsigned_integer_v<T>)
     value = static_cast<unsigned long long int>(v);
-  else if constexpr (is_default_constructible_v<typename Context::template formatter_type<T>>)
+  else if constexpr (sizeof(typename Context::template formatter_type<T>().format(declval<const T&>(), declval<Context&>())) != 0)
     value = handle(v);
 }
 
@@ -693,9 +693,8 @@ struct formatter {
         specs_.width_, specs_.width_ref, ctx, nullptr);
     fmt::internal::handle_dynamic_spec<fmt::internal::precision_checker>(
         specs_.precision, specs_.precision_ref, ctx, nullptr);
-    typedef fmt::output_range<typename FormatContext::iterator,
-                         typename FormatContext::char_type>
-        range_type;
+    using range_type = fmt::internal::output_range<typename FormatContext::iterator,
+                         typename FormatContext::char_type>;
     return visit_format_arg(arg_formatter<range_type>(ctx, nullptr, &specs_),
                             basic_format_arg<FormatContext>(val));
   }
@@ -719,7 +718,7 @@ template<class... Args>
 string vformat(string_view fmt, format_args args) {
   fmt::memory_buffer mbuf;
   fmt::internal::buffer<char>& buf = mbuf;
-  typedef fmt::back_insert_range<fmt::internal::buffer<char>> range;
+  using range = fmt::internal::buffer_range<char>;
   detail::format_handler<detail::arg_formatter<range>, char, format_context>
     h(range(std::back_inserter(buf)), fmt, args, {});
   fmt::internal::parse_format_string<false>(fmt::to_string_view(fmt), h);
@@ -742,7 +741,7 @@ template<class Out, class... Args>
 
 template<class Out>
   Out vformat_to(Out out, string_view fmt, format_args_t<Out, char> args) {
-    typedef fmt::output_range<Out, char> range;
+    using range = fmt::internal::output_range<Out, char>;
     detail::format_handler<detail::arg_formatter<range>, char, basic_format_context<Out, char>>
       h(range(out), fmt, args, {});
     fmt::internal::parse_format_string<false>(fmt::to_string_view(fmt), h);

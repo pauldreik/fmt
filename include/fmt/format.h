@@ -60,38 +60,6 @@
 #  define FMT_CUDA_VERSION 0
 #endif
 
-#ifdef __GNUC_LIBSTD__
-#  define FMT_GNUC_LIBSTD_VERSION \
-    (__GNUC_LIBSTD__ * 100 + __GNUC_LIBSTD_MINOR__)
-#endif
-
-#if FMT_GCC_VERSION || FMT_CLANG_VERSION
-#  pragma GCC diagnostic push
-
-// Disable the warning about declaration shadowing because it affects too
-// many valid cases.
-#  pragma GCC diagnostic ignored "-Wshadow"
-#endif
-
-#if FMT_CLANG_VERSION
-#  pragma GCC diagnostic ignored "-Wgnu-string-literal-operator-template"
-#endif
-
-#ifdef _SECURE_SCL
-#  define FMT_SECURE_SCL _SECURE_SCL
-#else
-#  define FMT_SECURE_SCL 0
-#endif
-
-// Check whether we can use unrestricted unions and use struct if not.
-#ifndef FMT_UNRESTRICTED_UNION
-#  if FMT_MSC_VER >= 1900 || FMT_GCC_VERSION >= 406 || FMT_CLANG_VERSION >= 303
-#    define FMT_UNRESTRICTED_UNION union
-#  else
-#    define FMT_UNRESTRICTED_UNION struct
-#  endif
-#endif
-
 #ifdef __has_builtin
 #  define FMT_HAS_BUILTIN(x) __has_builtin(x)
 #else
@@ -143,7 +111,7 @@ FMT_END_NAMESPACE
       FMT_CUDA_VERSION == 0 &&                                 \
       ((FMT_GCC_VERSION >= 600 && FMT_GCC_VERSION <= 900 &&    \
         __cplusplus >= 201402L) ||                             \
-       (defined(FMT_CLANG_VERSION) && FMT_CLANG_VERSION >= 304))
+       FMT_CLANG_VERSION >= 304)
 #    define FMT_USE_UDL_TEMPLATE 1
 #  else
 #    define FMT_USE_UDL_TEMPLATE 0
@@ -160,14 +128,11 @@ FMT_END_NAMESPACE
 
 // __builtin_clz is broken in clang with Microsoft CodeGen:
 // https://github.com/fmtlib/fmt/issues/519
-#ifndef _MSC_VER
-#  if FMT_GCC_VERSION || FMT_HAS_BUILTIN(__builtin_clz)
-#    define FMT_BUILTIN_CLZ(n) __builtin_clz(n)
-#  endif
-
-#  if FMT_GCC_VERSION || FMT_HAS_BUILTIN(__builtin_clzll)
-#    define FMT_BUILTIN_CLZLL(n) __builtin_clzll(n)
-#  endif
+#if (FMT_GCC_VERSION || FMT_HAS_BUILTIN(__builtin_clz)) && !FMT_MSC_VER
+#  define FMT_BUILTIN_CLZ(n) __builtin_clz(n)
+#endif
+#if (FMT_GCC_VERSION || FMT_HAS_BUILTIN(__builtin_clzll)) && !FMT_MSC_VER
+#  define FMT_BUILTIN_CLZLL(n) __builtin_clzll(n)
 #endif
 
 // Some compilers masquerade as both MSVC and GCC-likes or otherwise support
@@ -226,10 +191,6 @@ FMT_END_NAMESPACE
 FMT_BEGIN_NAMESPACE
 namespace internal {
 
-#ifndef FMT_USE_GRISU
-#  define FMT_USE_GRISU 1
-#endif
-
 // A fallback implementation of uintptr_t for systems that lack it.
 struct fallback_uintptr {
   unsigned char value[sizeof(void*)];
@@ -239,11 +200,6 @@ using uintptr_t = ::uintptr_t;
 #else
 using uintptr_t = fallback_uintptr;
 #endif
-
-template <typename T> inline bool use_grisu() {
-  return FMT_USE_GRISU && std::numeric_limits<double>::is_iec559 &&
-         sizeof(T) <= sizeof(double);
-}
 
 // An equivalent of `*reinterpret_cast<Dest*>(&source)` that doesn't produce
 // undefined behavior (e.g. due to type aliasing).
@@ -259,75 +215,62 @@ inline Dest bit_cast(const Source& source) {
 // An implementation of iterator_t for pre-C++20 systems.
 template <typename T>
 using iterator_t = decltype(std::begin(std::declval<T&>()));
-}  // namespace internal
 
+#ifndef FMT_USE_GRISU
+#  define FMT_USE_GRISU 1
+#endif
+
+template <typename T> inline bool use_grisu() {
+  return FMT_USE_GRISU && std::numeric_limits<double>::is_iec559 &&
+         sizeof(T) <= sizeof(double);
+}
+
+// A range with an iterator appending to a buffer.
+template <typename T> class buffer_range {
+ public:
+  using value_type = T;
+  using iterator = std::back_insert_iterator<buffer<T>>;
+
+ private:
+  iterator begin_;
+
+ public:
+  buffer_range(buffer<T>& buf) : begin_(std::back_inserter(buf)) {}
+  explicit buffer_range(iterator it) : begin_(it) {}
+  iterator begin() const { return begin_; }
+};
+
+// A range with the specified output iterator and value type.
 template <typename OutputIt, typename T = typename OutputIt::value_type>
 class output_range {
  private:
   OutputIt it_;
 
-  // Unused yet.
-  typedef void sentinel;
-  sentinel end() const;
-
  public:
-  typedef OutputIt iterator;
-  typedef T value_type;
+  using value_type = T;
+  using iterator = OutputIt;
 
   explicit output_range(OutputIt it) : it_(it) {}
   OutputIt begin() const { return it_; }
 };
 
-// A range where begin() returns back_insert_iterator.
-template <typename Container>
-class back_insert_range
-    : public output_range<std::back_insert_iterator<Container>> {
-  using base = output_range<std::back_insert_iterator<Container>>;
-
- public:
-  using value_type = typename Container::value_type;
-
-  back_insert_range(Container& c) : base(std::back_inserter(c)) {}
-  back_insert_range(typename base::iterator it) : base(it) {}
-};
-
-template <typename Range> class basic_writer;
-using writer = basic_writer<back_insert_range<internal::buffer<char>>>;
-using wwriter = basic_writer<back_insert_range<internal::buffer<wchar_t>>>;
-
-/** A formatting error such as invalid format string. */
-class format_error : public std::runtime_error {
- public:
-  explicit format_error(const char* message) : std::runtime_error(message) {}
-
-  explicit format_error(const std::string& message)
-      : std::runtime_error(message) {}
-};
-
-namespace internal {
-
-#if FMT_SECURE_SCL
-template <typename T> struct checked {
-  typedef stdext::checked_array_iterator<T*> type;
-};
-
-// Make a checked iterator to avoid warnings on MSVC.
-template <typename T>
-inline stdext::checked_array_iterator<T*> make_checked(T* p, std::size_t size) {
+#ifdef _SECURE_SCL
+// Make a checked iterator to avoid MSVC warnings.
+template <typename T> using checked_ptr = stdext::checked_array_iterator<T*>;
+template <typename T> checked_ptr<T> make_checked(T* p, std::size_t size) {
   return {p, size};
 }
 #else
-template <typename T> struct checked { typedef T* type; };
+template <typename T> using checked_ptr = T*;
 template <typename T> inline T* make_checked(T* p, std::size_t) { return p; }
 #endif
 
 template <typename T>
 template <typename U>
 void buffer<T>::append(const U* begin, const U* end) {
-  std::size_t new_size = size_ + internal::to_unsigned(end - begin);
+  std::size_t new_size = size_ + to_unsigned(end - begin);
   reserve(new_size);
-  std::uninitialized_copy(begin, end,
-                          internal::make_checked(ptr_, capacity_) + size_);
+  std::uninitialized_copy(begin, end, make_checked(ptr_, capacity_) + size_);
   size_ = new_size;
 }
 }  // namespace internal
@@ -335,8 +278,6 @@ void buffer<T>::append(const U* begin, const U* end) {
 // A UTF-8 string view.
 class u8string_view : public basic_string_view<char8_t> {
  public:
-  typedef char8_t char_type;
-
   u8string_view(const char* s)
       : basic_string_view<char8_t>(reinterpret_cast<const char8_t*>(s)) {}
   u8string_view(const char* s, size_t count) FMT_NOEXCEPT
@@ -480,6 +421,19 @@ void basic_memory_buffer<T, SIZE, Allocator>::grow(std::size_t size) {
 typedef basic_memory_buffer<char> memory_buffer;
 typedef basic_memory_buffer<wchar_t> wmemory_buffer;
 
+/** A formatting error such as invalid format string. */
+class FMT_API format_error : public std::runtime_error {
+ public:
+  explicit format_error(const char* message) : std::runtime_error(message) {}
+  explicit format_error(const std::string& message)
+      : std::runtime_error(message) {}
+  ~format_error() FMT_NOEXCEPT;
+};
+
+template <typename Range> class basic_writer;
+using writer = basic_writer<internal::buffer_range<char>>;
+using wwriter = basic_writer<internal::buffer_range<wchar_t>>;
+
 namespace internal {
 
 // A workaround for std::string not having mutable data() until C++17.
@@ -492,7 +446,7 @@ inline typename Container::value_type* get_data(Container& c) {
 }
 
 template <typename Container, FMT_ENABLE_IF(is_contiguous<Container>::value)>
-inline typename checked<typename Container::value_type>::type reserve(
+inline checked_ptr<typename Container::value_type> reserve(
     std::back_insert_iterator<Container>& it, std::size_t n) {
   Container& c = internal::get_container(it);
   std::size_t size = c.size();
@@ -1762,15 +1716,14 @@ template <typename Char> struct arg_ref {
   }
 
   Kind kind;
-  FMT_UNRESTRICTED_UNION value {
+  union value {
     FMT_CONSTEXPR value() : index(0u) {}
     FMT_CONSTEXPR value(unsigned id) : index(id) {}
     FMT_CONSTEXPR value(string_view_metadata n) : name(n) {}
 
     unsigned index;
     string_view_metadata name;
-  }
-  val;
+  } val;
 };
 
 // Format specifiers with width and precision resolved at formatting rather
@@ -2256,7 +2209,7 @@ class arg_formatter : public internal::arg_formatter_base<Range> {
  An error returned by an operating system or a language runtime,
  for example a file opening error.
 */
-class system_error : public std::runtime_error {
+class FMT_API system_error : public std::runtime_error {
  private:
   FMT_API void init(int err_code, string_view format_str, format_args args);
 
@@ -2289,6 +2242,7 @@ class system_error : public std::runtime_error {
       : std::runtime_error("") {
     init(error_code, message, make_format_args(args...));
   }
+  ~system_error() FMT_NOEXCEPT;
 
   int error_code() const { return error_code_; }
 };
@@ -3031,8 +2985,9 @@ struct formatter<T, Char,
         specs_.width_, specs_.width_ref, ctx, format_str_);
     internal::handle_dynamic_spec<internal::precision_checker>(
         specs_.precision, specs_.precision_ref, ctx, format_str_);
-    using range_type = output_range<typename FormatContext::iterator,
-                                    typename FormatContext::char_type>;
+    using range_type =
+        internal::output_range<typename FormatContext::iterator,
+                               typename FormatContext::char_type>;
     return visit_format_arg(arg_formatter<range_type>(ctx, nullptr, &specs_),
                             internal::make_arg<FormatContext>(val));
   }
@@ -3061,6 +3016,7 @@ FMT_FORMAT_AS(float, double);
 FMT_FORMAT_AS(Char*, const Char*);
 FMT_FORMAT_AS(std::basic_string<Char>, basic_string_view<Char>);
 FMT_FORMAT_AS(std::nullptr_t, const void*);
+FMT_FORMAT_AS(internal::std_string_view<Char>, basic_string_view<Char>);
 
 template <typename Char>
 struct formatter<void*, Char> : formatter<const void*, Char> {
@@ -3123,8 +3079,8 @@ template <typename Char = char> class dynamic_formatter {
     else if (specs_.has(HASH_FLAG))
       checker.on_hash();
     if (specs_.precision != -1) checker.end_precision();
-    typedef output_range<typename FormatContext::iterator,
-                         typename FormatContext::char_type>
+    typedef internal::output_range<typename FormatContext::iterator,
+                                   typename FormatContext::char_type>
         range;
     visit_format_arg(arg_formatter<range>(ctx, nullptr, &specs_),
                      internal::make_arg<FormatContext>(val));
@@ -3241,9 +3197,6 @@ template <typename It, typename Char> struct arg_join {
   It begin;
   It end;
   basic_string_view<Char> sep;
-
-  arg_join(It begin, It end, basic_string_view<Char> sep)
-      : begin(begin), end(end), sep(sep) {}
 };
 
 template <typename It, typename Char>
@@ -3273,12 +3226,12 @@ struct formatter<arg_join<It, Char>, Char>
  */
 template <typename It>
 arg_join<It, char> join(It begin, It end, string_view sep) {
-  return arg_join<It, char>(begin, end, sep);
+  return {begin, end, sep};
 }
 
 template <typename It>
 arg_join<It, wchar_t> join(It begin, It end, wstring_view sep) {
-  return arg_join<It, wchar_t>(begin, end, sep);
+  return {begin, end, sep};
 }
 
 // gcc 4.4 on join: internal compiler error: in tsubst_copy, at cp/pt.c:10122
@@ -3339,7 +3292,7 @@ template <typename Char>
 typename buffer_context<Char>::iterator internal::vformat_to(
     internal::buffer<Char>& buf, basic_string_view<Char> format_str,
     basic_format_args<buffer_context<Char>> args) {
-  typedef back_insert_range<internal::buffer<Char>> range;
+  using range = buffer_range<Char>;
   return vformat_to<arg_formatter<range>>(buf, to_string_view(format_str),
                                           args);
 }
@@ -3426,7 +3379,7 @@ template <typename S, typename OutputIt, typename... Args,
 inline OutputIt vformat_to(
     OutputIt out, const S& format_str,
     typename format_args_t<OutputIt, char_t<S>>::type args) {
-  typedef output_range<OutputIt, char_t<S>> range;
+  typedef internal::output_range<OutputIt, char_t<S>> range;
   return vformat_to<arg_formatter<range>>(range(out),
                                           to_string_view(format_str), args);
 }
@@ -3570,10 +3523,15 @@ template <typename Char> struct udl_arg {
 
 inline namespace literals {
 #  if FMT_USE_UDL_TEMPLATE
+#    pragma GCC diagnostic push
+#    if FMT_CLANG_VERSION
+#      pragma GCC diagnostic ignored "-Wgnu-string-literal-operator-template"
+#    endif
 template <typename Char, Char... CHARS>
 FMT_CONSTEXPR internal::udl_formatter<Char, CHARS...> operator""_format() {
   return {};
 }
+#    pragma GCC diagnostic pop
 #  else
 /**
   \rst
@@ -3663,11 +3621,6 @@ FMT_END_NAMESPACE
 #  include "format-inl.h"
 #else
 #  define FMT_FUNC
-#endif
-
-// Restore warnings.
-#if FMT_GCC_VERSION >= 406 || FMT_CLANG_VERSION
-#  pragma GCC diagnostic pop
 #endif
 
 #endif  // FMT_FORMAT_H_

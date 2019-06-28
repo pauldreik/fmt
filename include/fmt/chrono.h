@@ -407,6 +407,7 @@ inline bool isfinite(T value) {
 template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline int to_nonnegative_int(T value, int upper) {
   FMT_ASSERT(value >= 0 && value <= upper, "invalid value");
+  (void)upper;
   return static_cast<int>(value);
 }
 template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
@@ -414,6 +415,7 @@ inline int to_nonnegative_int(T value, int upper) {
   FMT_ASSERT(
       std::isnan(value) || (value >= 0 && value <= static_cast<T>(upper)),
       "invalid value");
+  (void)upper;
   return static_cast<int>(value);
 }
 
@@ -423,7 +425,7 @@ inline T mod(T x, int y) {
 }
 template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
 inline T mod(T x, int y) {
-  return std::fmod(x, y);
+  return std::fmod(x, static_cast<T>(y));
 }
 
 // If T is an integral type, maps T to its unsigned counterpart, otherwise
@@ -477,8 +479,8 @@ template <typename Rep, typename Period,
           FMT_ENABLE_IF(std::is_floating_point<Rep>::value)>
 inline std::chrono::duration<Rep, std::milli> get_milliseconds(
     std::chrono::duration<Rep, Period> d) {
-  return std::chrono::duration<Rep, std::milli>(
-      mod(d.count() * Period::num / Period::den * 1000, 1000));
+  auto ms = mod(d.count() * Period::num / Period::den * 1000, 1000);
+  return std::chrono::duration<Rep, std::milli>(static_cast<Rep>(ms));
 }
 
 template <typename Rep, typename OutputIt>
@@ -551,15 +553,15 @@ struct chrono_formatter {
     return true;
   }
 
-  Rep hour() const { return mod((s.count() / 3600), 24); }
+  Rep hour() const { return static_cast<Rep>(mod((s.count() / 3600), 24)); }
 
   Rep hour12() const {
-    Rep hour = mod((s.count() / 3600), 12);
+    Rep hour = static_cast<Rep>(mod((s.count() / 3600), 12));
     return hour <= 0 ? 12 : hour;
   }
 
-  Rep minute() const { return mod((s.count() / 60), 60); }
-  Rep second() const { return mod(s.count(), 60); }
+  Rep minute() const { return static_cast<Rep>(mod((s.count() / 60), 60)); }
+  Rep second() const { return static_cast<Rep>(mod(s.count(), 60)); }
 
   std::tm time() const {
     auto time = std::tm();
@@ -819,7 +821,7 @@ struct formatter<std::chrono::duration<Rep, Period>, Char> {
     // is not specified.
     basic_memory_buffer<Char> buf;
     auto out = std::back_inserter(buf);
-    typedef output_range<decltype(ctx.out()), Char> range;
+    using range = internal::output_range<decltype(ctx.out()), Char>;
     basic_writer<range> w(range(ctx.out()));
     internal::handle_dynamic_spec<internal::width_checker>(
         spec.width_, width_ref, ctx, format_str.begin());

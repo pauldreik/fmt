@@ -401,7 +401,7 @@ struct error_handler {
   FMT_CONSTEXPR error_handler(const error_handler&) {}
 
   // This function is intentionally not constexpr to give a compile-time error.
-  FMT_API FMT_NORETURN void on_error(const char* message);
+  FMT_NORETURN FMT_API void on_error(const char* message);
 };
 }  // namespace internal
 
@@ -766,7 +766,7 @@ template <typename Context> struct arg_mapper {
     return val;
   }
 
-  FMT_CONSTEXPR double map(float val) { return val; }
+  FMT_CONSTEXPR double map(float val) { return static_cast<double>(val); }
   FMT_CONSTEXPR double map(double val) { return val; }
   FMT_CONSTEXPR long double map(long double val) { return val; }
 

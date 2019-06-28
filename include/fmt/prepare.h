@@ -1,4 +1,4 @@
-// Formatting library for C++ - format string compilation
+// Formatting library for C++ - experimental format string compilation
 //
 // Copyright (c) 2012 - present, Victor Zverovich and fmt contributors
 // All rights reserved.
@@ -40,7 +40,7 @@ template <typename Char> struct format_part {
 
     which_arg_id which;
 
-    FMT_UNRESTRICTED_UNION value {
+    union value {
       FMT_CONSTEXPR value() : index(0u) {}
       FMT_CONSTEXPR value(unsigned id) : index(id) {}
       FMT_CONSTEXPR value(internal::string_view_metadata id)
@@ -48,8 +48,7 @@ template <typename Char> struct format_part {
 
       unsigned index;
       internal::string_view_metadata named_index;
-    }
-    val;
+    } val;
   };
 
   struct specification {
@@ -89,7 +88,7 @@ template <typename Char> struct format_part {
 
   which_value which;
   std::size_t end_of_argument_id;
-  FMT_UNRESTRICTED_UNION value {
+  union value {
     FMT_CONSTEXPR value() : arg_id(0u) {}
     FMT_CONSTEXPR value(unsigned id) : arg_id(id) {}
     FMT_CONSTEXPR value(named_argument_id named_id)
@@ -100,8 +99,7 @@ template <typename Char> struct format_part {
     internal::string_view_metadata named_arg_id;
     internal::string_view_metadata text;
     specification spec;
-  }
-  val;
+  } val;
 };
 
 namespace internal {
@@ -216,7 +214,7 @@ class prepared_format {
 
   std::basic_string<char_type> format(const Args&... args) const {
     basic_memory_buffer<char_type> buffer;
-    typedef back_insert_range<internal::buffer<char_type>> range;
+    using range = buffer_range<char_type>;
     this->vformat_to(range(buffer), basic_format_args<context>{
                                         make_args_checked(format_, args...)});
     return to_string(buffer);
@@ -226,7 +224,7 @@ class prepared_format {
   inline std::back_insert_iterator<Container> format_to(
       std::back_insert_iterator<Container> out, const Args&... args) const {
     internal::container_buffer<Container> buffer(internal::get_container(out));
-    typedef back_insert_range<internal::buffer<char_type>> range;
+    using range = buffer_range<char_type>;
     this->vformat_to(range(buffer), basic_format_args<context>{
                                         make_args_checked(format_, args...)});
     return out;
@@ -243,7 +241,7 @@ class prepared_format {
   template <std::size_t SIZE = inline_buffer_size>
   inline typename buffer_context<char_type>::iterator format_to(
       basic_memory_buffer<char_type, SIZE>& buf, const Args&... args) const {
-    typedef back_insert_range<internal::buffer<char_type>> range;
+    using range = buffer_range<char_type>;
     return this->vformat_to(
         range(buf),
         basic_format_args<context>{make_args_checked(format_, args...)});
@@ -724,8 +722,6 @@ template <typename... Args> struct wprepared_format {
                                      Args...>::type type;
 };
 
-#if FMT_USE_ALIAS_TEMPLATES
-
 template <typename Char, typename Container = std::vector<format_part<Char>>>
 using parts_container_t = typename parts_container<Char, Container>::type;
 
@@ -741,8 +737,6 @@ using prepared_format_t =
 template <typename... Args>
 using wprepared_format_t =
     basic_prepared_format_t<std::wstring, parts_container<wchar_t>, Args...>;
-
-#endif
 
 #if FMT_USE_CONSTEXPR
 
