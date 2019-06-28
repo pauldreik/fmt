@@ -46,7 +46,13 @@ void invoke_fmt(const uint8_t* Data, std::size_t Size, unsigned int argsize) {
 #else
   auto fmtstring = fmt::string_view(fmt_fuzzer::as_chars(Data), Size);
 #endif
+
+#if FMT_FUZZ_FORMAT_TO_STRING
   std::string message = fmt::format(fmtstring, fmt::arg(argname, item1));
+#else
+  fmt::memory_buffer outbuf;
+  fmt::format_to(outbuf, fmtstring, fmt::arg(argname, item1));
+#endif
 }
 
 // for dynamic dispatching to an explicit instantiation
