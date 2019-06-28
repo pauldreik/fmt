@@ -1071,9 +1071,8 @@ It grisu_prettify(const char* digits, int size, int exp, It it,
     if (params.trailing_zeros) {
       *it++ = static_cast<Char>('.');
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-      // avoid getting stuck here
       if (num_zeros > 1000) {
-        throw std::runtime_error("fuzz mode - avoiding excessive memory");
+        throw std::runtime_error("fuzz mode - avoiding excessive memory use");
       }
 #endif
       it = std::fill_n(it, num_zeros, static_cast<Char>('0'));
