@@ -29,7 +29,7 @@ builddir=$here/build-fuzzers-reproduce
 mkdir -p $builddir
 cd $builddir
 CXX="ccache g++" CXXFLAGS="$CXXFLAGSALL" cmake \
-$root -GNinja -DCMAKE_BUILD_TYPE=Debug -DFMT_DOC=Off -DFMT_TEST=Off -DFMT_FUZZ=On
+$root
 cmake --build $builddir
 
 #for performance analysis of the fuzzers
