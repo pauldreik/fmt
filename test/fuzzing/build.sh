@@ -29,7 +29,7 @@ builddir=$here/build-fuzzers-reproduce
 mkdir -p $builddir
 cd $builddir
 CXX="ccache g++" CXXFLAGS="$CXXFLAGSALL" cmake \
-$root
+$CMAKEFLAGSALL
 cmake --build $builddir
 
 #for performance analysis of the fuzzers
