@@ -244,6 +244,11 @@ template <> FMT_FUNC int count_digits<4>(internal::fallback_uintptr n) {
 template <typename T>
 int format_float(char* buf, std::size_t size, const char* format, int precision,
                  T value) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+  if (precision > 100000) {
+    throw std::runtime_error("fuzz mode - avoid large allocation inside snprintf");
+  }
+#endif
   // Suppress the warning about nonliteral format string.
   auto snprintf_ptr = FMT_SNPRINTF;
   return precision < 0 ? snprintf_ptr(buf, size, format, value)
@@ -771,12 +776,6 @@ void sprintf_format(Double value, internal::buffer<char>& buf,
 #endif
   *format_ptr++ = type;
   *format_ptr = '\0';
-
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-  if (spec.precision > 1000) {
-    throw std::runtime_error("fuzz mode - avoiding large precision");
-  }
-#endif
 
   // Format using snprintf.
   char* start = nullptr;
