@@ -1750,7 +1750,10 @@ class arg_formatter_base {
       : writer_(r, loc), specs_(s) {}
 
   iterator operator()(monostate) {
-    FMT_ASSERT(false, "invalid argument type");
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    throw std::runtime_error("fuzz mode - throw instead of assert");
+#endif
+  FMT_ASSERT(false, "invalid argument type");
     return out();
   }
 

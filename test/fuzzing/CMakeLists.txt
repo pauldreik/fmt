@@ -17,6 +17,7 @@ set(SOURCES
   one_arg.cpp
   sprintf.cpp
   two_args.cpp
+  prepared.cpp
 )
 
 macro(implement_fuzzer sourcefile)
