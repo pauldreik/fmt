@@ -36,3 +36,9 @@ endmacro ()
 foreach (X IN ITEMS ${SOURCES})
   implement_fuzzer(${X})
 endforeach ()
+
+
+
+find_package (Python3 COMPONENTS Development)
+add_executable(hellopython pythonfuzz/hello.cpp)
+target_link_libraries(hellopython Python3::Python)
